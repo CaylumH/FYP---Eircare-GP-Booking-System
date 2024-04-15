@@ -22,6 +22,9 @@ public class Patient{
     private String address;
     private Double latitude;
     private Double longitude;
+    // used to match patient records in external pms
+    //individual healthcare identifier
+    private String ihi;
 
     public Patient() {
     }
@@ -99,5 +102,13 @@ public class Patient{
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    public String getIhi() {
+        return ihi;
+    }
+
+    public void setIhi(String ihi) {
+        this.ihi = ihi;
     }
 }

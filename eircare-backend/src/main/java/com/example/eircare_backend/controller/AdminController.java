@@ -20,9 +20,12 @@ import com.example.eircare_backend.JWTUtil;
 import com.example.eircare_backend.LoginRequest;
 import com.example.eircare_backend.TokenChecker;
 import com.example.eircare_backend.model.Doctor;
+import com.example.eircare_backend.model.Practice;
 import com.example.eircare_backend.model.User;
 import com.example.eircare_backend.repository.UserRepository;
 import com.example.eircare_backend.service.AdminService;
+import com.example.eircare_backend.service.PracticeFallbackGeocoderService;
+import com.example.eircare_backend.repository.PracticeRepository;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -30,15 +33,20 @@ import com.example.eircare_backend.service.AdminService;
 public class AdminController {
 
     private final AdminService adminService;
+    private final PracticeFallbackGeocoderService practiceFallbackService;
 
+    private final PracticeRepository practiceRepository;
     private final UserRepository userRepository;
     private final JWTUtil jwtUtil;
-
     private final TokenChecker tokenChecker;
     private final BCryptPasswordEncoder passwordHasher = new BCryptPasswordEncoder();
 
-    public AdminController(AdminService adminService, UserRepository userRepository, JWTUtil jwtUtil, TokenChecker tokenChecker) {
+    public AdminController(AdminService adminService, PracticeFallbackGeocoderService practiceFallbackService, PracticeRepository practiceRepository, UserRepository userRepository, JWTUtil jwtUtil, TokenChecker tokenChecker) {
+
         this.adminService = adminService;
+        this.practiceFallbackService = practiceFallbackService;
+
+        this.practiceRepository = practiceRepository;
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.tokenChecker = tokenChecker;
@@ -95,5 +103,37 @@ public class AdminController {
     public void deleteUser(@PathVariable Long id, @RequestHeader("Authorization") String tokenHeader) {
         tokenChecker.roleRequired(tokenHeader, User.Role.ADMIN);
         adminService.deleteUser(id);
+    }
+
+    @PostMapping("/practices/import")
+    public Practice importPractice(@RequestBody Practice practice, @RequestHeader("Authorization") String tokenHeader) {
+
+        tokenChecker.roleRequired(tokenHeader, User.Role.ADMIN);
+
+        return adminService.importPractice(practice);
+    }
+
+    @GetMapping("/practices/missing-coordinates")
+    public List<Practice> getPracticesMissingCoordinates(@RequestHeader("Authorization") String tokenHeader) {
+
+        tokenChecker.roleRequired(tokenHeader, User.Role.ADMIN);
+
+        return practiceRepository.findByLatitudeIsNull();
+    }
+
+    @PostMapping("/practices/re-geocode-all")
+    public Map<String, String> ReGeocodeAll(@RequestHeader("Authorization") String tokenHeader) {
+
+        tokenChecker.roleRequired(tokenHeader, User.Role.ADMIN);
+        adminService.reGeocodeAllMissing();
+
+        return Map.of("message", "Re-geocoding started..");
+    }
+
+    @PostMapping("/practices/{id}/ai-geocode")
+    public Practice aiGeocodePractice(@PathVariable Long id, @RequestHeader("Authorization") String tokenHeader) {
+        tokenChecker.roleRequired(tokenHeader, User.Role.ADMIN);
+
+        return practiceFallbackService.aiGeocode(id);
     }
 }

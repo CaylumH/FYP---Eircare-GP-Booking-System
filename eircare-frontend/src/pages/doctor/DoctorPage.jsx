@@ -10,7 +10,7 @@ import { bookAppointment as bookAppointmentService } from "../../services/appoin
 import { useFetchUserDetails } from "../../hooks/useFetchUserDetails";
 import { useWeeklySchedule } from "../../hooks/useWeeklySchedule";
 import DoctorFooter from "../../components/DoctorFooter";
-import { ChevronLeft, ChevronRight } from "react-bootstrap-icons";
+import WeekNavigator from "../../components/WeekNavigator";
 
 
 function DoctorPage() {
@@ -186,36 +186,12 @@ const sorted = response.sort((a, b) => weekOrder.indexOf(a.day) - weekOrder.inde
                 
                 <div className="card-body p-3">
                     
-                    <div className="d-flex justify-content-between align-items-center">
-                        
-                        <button
-                         className="btn btn-outline-success nav-btn" 
-                         onClick={() => {
-                            const previousWeek = new Date(selectedWeekMondayDate);
-                            previousWeek.setDate(selectedWeekMondayDate.getDate() - 7);
-                            setSelectedWeekMondayDate(previousWeek);
-                        }}
-                        >
-                            <ChevronLeft size={18} />
-                        </button>
-
-                        <span className="fw-semibold">
-                            {weekStartDate} - {weekEndDate}
-                            </span>
-
-                        <button 
-                        className="btn btn-outline-success nav-btn" 
-                        onClick={() => {
-                            const nextWeek = new Date(selectedWeekMondayDate);
-                            nextWeek.setDate(selectedWeekMondayDate.getDate() + 7);
-                            setSelectedWeekMondayDate(nextWeek);
-                        }
-                        }
-                        >
-                            <ChevronRight size={18} />
-                        </button>
-
-                    </div>
+                    <WeekNavigator
+                        weekStartDate={weekStartDate}
+                        weekEndDate={weekEndDate}
+                        selectedWeekMondayDate={selectedWeekMondayDate}
+                        setSelectedWeekMondayDate={setSelectedWeekMondayDate}
+                    />
                 </div>
             </div>
 

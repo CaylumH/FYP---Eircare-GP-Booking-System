@@ -14,10 +14,11 @@ function TimeSlot({
 
     const slotType = getSlotType(singleSlot, appointment);
 
-    const isUnavailable = slotType === "unavailable";
+    const isUnavailable = appointment?.appointmentStatus === "UNAVAILABLE";
 
     switch (slotType) {
 
+        case "unavailable":
         case "appointment":
             return (
                 <div

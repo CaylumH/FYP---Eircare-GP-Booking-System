@@ -238,6 +238,7 @@ function BookingModal({
                   placeholder="Translator Language"
                   value={appointmentForm.translatorLanguage}
                   onChange={handleTranslatorLanguageChange}
+                  required
                 />
               )}
             </div>

@@ -39,6 +39,9 @@ public class Appointment {
     private String translatorLanguage;
     private String roomName;
     private ConsultationType consultationType;
+    // Opaque id assigned by an external Patient management system 
+    // allows cross-system appointment correlation without exposing internal database
+    private String externalReferenceId;
 
 @Transient
     private Integer appointmentDuration;
@@ -174,5 +177,15 @@ public class Appointment {
 
     public void setConsultationType(ConsultationType consultationType) {
         this.consultationType = consultationType;
+    }
+
+    public String getExternalReferenceId() {
+
+        return externalReferenceId;
+    }
+
+    public void setExternalReferenceId(String externalReferenceId) {
+        
+        this.externalReferenceId = externalReferenceId;
     }
 }

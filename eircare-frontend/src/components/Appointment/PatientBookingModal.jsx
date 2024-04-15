@@ -83,7 +83,7 @@ function PatientBookingModal({
 
             <div className="alert alert-info mb-3">
               <strong>Doctor:</strong> {doctor.firstName} {doctor.lastName}<br/>
-              <strong>Practice:</strong> {doctor.practiceName}<br/>
+              <strong>Practice:</strong> {doctor.practice?.name}<br/>
               <strong>Time:</strong> {format(new Date(selectTimeSlot.date), 'PPP')} at {selectTimeSlot.time}
 
             </div>
@@ -181,6 +181,7 @@ function PatientBookingModal({
                   placeholder="Language Required"
                   value={translatorLanguage}
                   onChange={handleTranslatorLanguageChange}
+                  required
                 />
               )
               }

@@ -5,14 +5,13 @@ import AppointmentDetails from "../../components/Appointment/AppointmentDetails"
 import BookingModal from "../../components/Appointment/BookingModal";
 import PatientFilter from "../../components/Doctor/PatientFilter";
 import DoctorAppointmentScheduleLayout from "../../components/Appointment/AppointmentScheduleLayout";
-import VirtualAppointment from "../../components/Appointment/VirtualAppointment";
 import { getToken, isAuthenticated, getRole } from "../../services/authService";
-import { cancelAppointment as cancelAppointmentService, openVirtualAppointmentRoom as openVirtualRoomService, checkAppointmentCancelled, bookAppointment as bookAppointmentService, markSlotUnavailable as markSlotUnavailableService } from "../../services/appointmentService";
+import { cancelAppointment as cancelAppointmentService, openVirtualAppointment, checkAppointmentCancelled, bookAppointment as bookAppointmentService, markSlotUnavailable as markSlotUnavailableService } from "../../services/appointmentService";
 import { apiRequest } from "../../utils/ApiRequest";
 import { useFetchAppointments } from "../../hooks/useFetchAppointments";
 import { useFetchUserDetails } from "../../hooks/useFetchUserDetails";
 // import { useWeekNavigation } from "../../hooks/useWeekNavigation";
-import { ChevronLeft, ChevronRight } from "react-bootstrap-icons";
+import WeekNavigator from "../../components/WeekNavigator";
 
 import { useWeeklySchedule } from "../../hooks/useWeeklySchedule";
 
@@ -23,7 +22,6 @@ function DoctorBookingManager() {   //File handling too much atm, future work (f
     const [selectTimeSlot, setSelectTimeSlot] = useState(null);
     const [sortedPatientsBySearch, setSortedPatientsBySearch] = useState([]);
 
-    const [virtualModel, setVirtualModel] = useState({ show: false, roomName: "" });
     const [appointmentForm, setAppointmentForm] = useState(
         {
             searchInput: "",
@@ -41,22 +39,7 @@ function DoctorBookingManager() {   //File handling too much atm, future work (f
     const { weekStartDate, weekEndDate, selectedWeekMondayDate, setSelectedWeekMondayDate, weekTimeSlots, refetchWeekTimeSlots } = useWeeklySchedule(id);
 
  
-    const openVirtualAppointmentModal = async (appointmentId) => {
-        try {
-            const responseData = await openVirtualRoomService(appointmentId);
-            
-            setVirtualModel({ show: true, roomName: responseData.roomName });
-
-        }
-        catch (error) {
-            console.error(error);
-            alert("Error opening meeeting" + error.message);
-        }
-    };
-
-    const closeVirtualAppointmentModal = () => {
-        setVirtualModel({ show: false, roomName: "" });
-    };
+    const openVirtualAppointmentModal = openVirtualAppointment;
 
     const isAppointmentCancelled = checkAppointmentCancelled;
 
@@ -249,33 +232,13 @@ function DoctorBookingManager() {   //File handling too much atm, future work (f
                 <div className="card shadow-sm rounded-3 w-100 mb-3" style={{ maxWidth: "1000px" }}>
                     <div className="card-body p-3">
 
-                        <div className="d-flex justify-content-between align-items-center mb-3">
-
-                            <button 
-                            className="btn btn-outline-success nav-btn" 
-                            onClick={() => {
-                                const previousWeek = new Date(selectedWeekMondayDate);
-                                previousWeek.setDate(selectedWeekMondayDate.getDate() - 7);
-                                setSelectedWeekMondayDate(previousWeek);
-                            }
-                        }
-                            >
-                                <ChevronLeft size={18} />
-                            </button>
-
-                            <span className="fw-semibold">
-                                {weekStartDate} - {weekEndDate}
-                            </span>
-
-                            <button className="btn btn-outline-success nav-btn" 
-                            onClick={() => {
-                                const nextWeek = new Date(selectedWeekMondayDate);
-                                nextWeek.setDate(selectedWeekMondayDate.getDate() + 7);
-                                setSelectedWeekMondayDate(nextWeek);
-                            }}
-                            >
-                                <ChevronRight size={18} />
-                            </button>
+                        <div className="mb-3">
+                        <WeekNavigator
+                            weekStartDate={weekStartDate}
+                            weekEndDate={weekEndDate}
+                            selectedWeekMondayDate={selectedWeekMondayDate}
+                            setSelectedWeekMondayDate={setSelectedWeekMondayDate}
+                        />
                         </div>
 
                         <PatientFilter
@@ -314,13 +277,6 @@ function DoctorBookingManager() {   //File handling too much atm, future work (f
                     />
                 )}
 
-                {virtualModel.show && (
-                    <VirtualAppointment
-                        roomName={virtualModel.roomName}
-                        closeVirtualAppointmentModal={closeVirtualAppointmentModal}
-                    />
-                )
-                }
 
                 {selectTimeSlot && (
                     <BookingModal
@@ -331,7 +287,7 @@ function DoctorBookingManager() {   //File handling too much atm, future work (f
                         setAppointmentForm={setAppointmentForm}
                         markSlotUnavailable={markSlotUnavailable}
                         bookAppointment={bookAppointment}
-                        providesVirtual={doctor?.providesVirtualAppointments ?? true}
+                        providesVirtual={doctor?.providesVirtualAppointments ?? false}
                     />
                 )
                 }

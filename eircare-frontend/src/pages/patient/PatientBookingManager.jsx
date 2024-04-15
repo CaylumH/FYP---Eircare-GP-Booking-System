@@ -7,6 +7,7 @@ import { useFetchAppointments } from "../../hooks/useFetchAppointments";
 function PatientBookingManager() {
 
     const [statusTab, setStatusTab] = useState("UPCOMING"); //UPCOMING PAST CANCELLED
+    const [selectedAppointment, setSelectedAppointment] = useState(null);
 
     const patientId = localStorage.getItem("patientId");
     
@@ -31,15 +32,24 @@ function PatientBookingManager() {
 
     };
 
-    const cancelAppointment = async (appointmentId) => {
+    const isCancellationAllowed = (appointment) => {
+
+        const hourstilAppointment = (new Date(appointment.appointmentStart) - new Date()) / (1000 * 60 * 60);
+        return hourstilAppointment > 12;
+    };
+
+    const cancelAppointment = async (appointmentId, appointment) => {
+
+        if (!isCancellationAllowed(appointment)) {
+            alert("It is 12 hours until your appointment. You cannot cancel now");
+            
+            return;
+        }
         try {
-
             await cancelAppointmentService(appointmentId);
-            refetchAppointments(); //refreshh after cancel
-
+            refetchAppointments(); //referesh after cancel
         } catch (error) {
             console.error(error);
-
             alert("Cancellation Failed" + error.message);
         }
     };
@@ -119,7 +129,7 @@ function PatientBookingManager() {
 
                                             </div>
 
-                                            <div className="text-muted small mb-2">{appointment.doctor.practiceName}</div>
+                                            <div className="text-muted small mb-2">{appointment.doctor.practice?.name}</div>
 
                                             <div className="mb-2">
 
@@ -151,10 +161,16 @@ function PatientBookingManager() {
                                         </div>
 
                                         <div className="d-flex flex-column gap-2 align-items-end flex-shrink-0">
+                                            <button
+                                                className="btn btn-outline-secondary btn-sm"
+                                                onClick={() => setSelectedAppointment(appointment)}
+                                            >Details</button>
                                             {statusTab === "UPCOMING" && (
                                                 <button
-                                                    onClick={() => cancelAppointment(appointment.appointmentId)}
+                                                    onClick={() => cancelAppointment(appointment.appointmentId, appointment)}
                                                     className="btn btn-outline-danger btn-sm"
+                                                    disabled={!isCancellationAllowed(appointment)}
+                                                    title={!isCancellationAllowed(appointment) ? "Cannot cancel within 12 hours of appointment" : ""}
                                                 >
                                                     Cancel
                                                 </button>
@@ -178,10 +194,76 @@ function PatientBookingManager() {
                         }
                     </div>
                 )}
+            {selectedAppointment && (
+                <div>
+                    <div className="modal-backdrop fade show"></div>
+
+                    <div className="modal d-block" onClick={() => setSelectedAppointment(null)}>
+
+                        <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+
+                            <div className="modal-content">
+
+                                <div className="modal-header bg-success text-white">
+
+                                    <h5 className="modal-title">Appointment Details
+
+                                    </h5>
+
+                                    <button type="button" 
+                                    className="btn-close btn-close-white" 
+                                    onClick={() => setSelectedAppointment(null)}>
+
+                                    </button>
+                                </div>
+
+                                <div className="modal-body">
+                                    
+                                    <p>
+                                        <strong>Doctor:</strong> Dr. {selectedAppointment.doctor.firstName} {selectedAppointment.doctor.lastName}</p>
+                                    <p>
+                                        <strong>Practice:</strong> {selectedAppointment.doctor.practice?.name || "n/a"}
+                                        </p>
+                                    <hr />
+                                    <p>
+                                        <strong>Start:</strong> {new Date(selectedAppointment.appointmentStart).toLocaleString()}</p>
+                                        
+                                    <p><strong>End:</strong> {new Date(selectedAppointment.appointmentEnd).toLocaleString()}</p>
+                                    <p><strong>Type:</strong> {selectedAppointment.appointmentType}</p>
+                                    <p>
+                                        <strong>Consultation:</strong> {selectedAppointment.consultationType?.replace(/_/g, " ")}</p>
+                                    <p>
+                                        <strong>Status:</strong> {selectedAppointment.appointmentStatus}
+                                        </p>
+
+                                    {selectedAppointment.appointmentDescription && (
+                                        <p><strong>Description:</strong> {selectedAppointment.appointmentDescription}</p>
+                                    )}
+                                    <p><strong>Translator Required:</strong> {selectedAppointment.needsTranslator 
+                                    ? "Yes" 
+                                    : "No"}</p>
+
+                                    {selectedAppointment.needsTranslator && (
+                                        <p><strong>Translator Language:</strong> {selectedAppointment.translatorLanguage || "n/a"}</p>
+                                    )
+                                    }
+                                </div>
+
+                                <div className="modal-footer">
+                                    <button className="btn btn-secondary" onClick={() => setSelectedAppointment(null)}>Close</button>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            )
+            }
             </div>
         );
     }
-    
-    
+
+
     return <div>Invalid role</div>;
 }export default PatientBookingManager;

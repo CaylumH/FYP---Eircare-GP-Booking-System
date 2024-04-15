@@ -19,7 +19,7 @@ export const useFetchAppointments = (userId, userType) => {
                     ? await fetchPatientAppointments(userId)
                     : await fetchDoctorAppointments(userId);
 
-                setAppointments(data);
+                setAppointments(data ?? []);
 
                 setAppointmentsLoading(false);
             }
@@ -46,7 +46,7 @@ export const useFetchAppointments = (userId, userType) => {
                 ? await fetchPatientAppointments(userId)
                 : await fetchDoctorAppointments(userId);
 
-            setAppointments(data);
+            setAppointments(data ?? []);
         }
         catch (error) {
             console.error(error);

@@ -34,6 +34,7 @@ import com.example.eircare_backend.repository.PatientRepository;
 import com.example.eircare_backend.model.User;
 import com.example.eircare_backend.TokenChecker;
 import com.example.eircare_backend.service.AppointmentService;
+import com.example.eircare_backend.service.WebhookService;
 
 import io.jsonwebtoken.Claims;
 
@@ -48,8 +49,9 @@ public class AppointmentController {
     private final PatientRepository patientRepository;
     private final TokenChecker tokenChecker;
     private final AppointmentService appointmentService;
+    private final WebhookService webhookService;
 
-    public AppointmentController(AppointmentRepository appointmentRepository, DoctorRepository doctorRepository, DoctorAvailablityRepository doctorAvailabilityRepository, DoctorBreakRepository doctorBreakRepository, PatientRepository patientRepository, AppointmentService appointmentService, TokenChecker tokenChecker) {
+    public AppointmentController(AppointmentRepository appointmentRepository, DoctorRepository doctorRepository, DoctorAvailablityRepository doctorAvailabilityRepository, DoctorBreakRepository doctorBreakRepository, PatientRepository patientRepository, AppointmentService appointmentService, TokenChecker tokenChecker, WebhookService webhookService) {
         this.appointmentRepository = appointmentRepository;
         this.doctorRepository = doctorRepository;
         this.doctorAvailabilityRepository = doctorAvailabilityRepository;
@@ -57,11 +59,12 @@ public class AppointmentController {
         this.patientRepository = patientRepository;
         this.appointmentService = appointmentService;
         this.tokenChecker = tokenChecker;
+        this.webhookService = webhookService;
     }
 
     @GetMapping
     public List<Appointment> getAllAppointments(@RequestHeader("Authorization") String tokenHeader) {
-        tokenChecker.roleRequired(tokenHeader, User.Role.DOCTOR);
+        tokenChecker.roleRequired(tokenHeader, User.Role.ADMIN);
         appointmentService.checkForAppointmentsCompleted();
         return appointmentRepository.findAll();
     }
@@ -122,6 +125,11 @@ public class AppointmentController {
                 duration = 15; //default to 15 just incase
             }
 
+            if (appointment.getAppointmentStart().isBefore(LocalDateTime.now())) {
+
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot book a slot in the past");
+            }
+
             List<Appointment> overlapping = appointmentRepository.findOverlappingAppointments(
 
                 appointment.getDoctor().getId(),
@@ -143,7 +151,10 @@ public class AppointmentController {
         if (appointment.getPatient() != null && patientRepository.findById(appointment.getPatient().getId()).isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Patient does not exist");
         }
-        return appointmentRepository.save(appointment);
+        Appointment saved = appointmentRepository.save(appointment);
+
+        webhookService.notifyAppointmentBooked(saved);
+        return saved;
     }
 
     @GetMapping("/{id}/virtual-appointment-room")
@@ -311,6 +322,7 @@ public void markUnavailable(
     unavailable.setDoctor(doctor);
     unavailable.setAppointmentStart(appointmentStart);
     unavailable.setAppointmentEnd(appointmentEnd);
+    unavailable.setNeedsTranslator(false);
 
     unavailable.setAppointmentStatus(Appointment.AppointmentStatus.UNAVAILABLE);
 
@@ -324,12 +336,36 @@ public void markUnavailable(
                 .orElseThrow(() -> new RuntimeException("Appointment not found"));
         appointment.setAppointmentStatus(Appointment.AppointmentStatus.CANCELLED);
         appointmentRepository.save(appointment);
+        webhookService.notifyAppointmentCancelled(appointment);
     }
 
     @DeleteMapping("/{id}")
     public void deleteAppointment(@PathVariable Long id, @RequestHeader("Authorization") String token) {
         tokenChecker.roleRequired(token, User.Role.DOCTOR);
         appointmentRepository.deleteById(id);
+    }
+
+    @PostMapping("/{id}/status")
+    public Appointment updateAppointmentStatus(@PathVariable Long id, @RequestBody Map<String, String> body, @RequestHeader("Authorization") String token) {
+
+        tokenChecker.roleRequired(token, User.Role.DOCTOR);
+
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
+        String statusValue = body.get("status");
+
+        if (statusValue == null) {
+
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "input status");
+        }
+        try {
+            appointment.setAppointmentStatus(Appointment.AppointmentStatus.valueOf(statusValue));
+        } catch (IllegalArgumentException e) {
+
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid status " + statusValue);
+        }
+        
+        return appointmentRepository.save(appointment);
     }
 
 }
