@@ -44,7 +44,7 @@ function PatientLogin() {
             localStorage.setItem("role", "PATIENT");
 
 
-            navigate("/dashboard");
+            navigate("/practices");
 
         }
         catch (error) {

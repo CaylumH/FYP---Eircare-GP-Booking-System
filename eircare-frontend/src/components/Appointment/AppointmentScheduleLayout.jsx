@@ -17,7 +17,7 @@ function DoctorAppointmentScheduleLayout({
 
                 <div 
                 className="row flex-nowrap g-2" 
-                style={{ minWidth: "560px" }}> //should be scrollable
+                style={{ minWidth: "560px" }}>
 
                     {weekTimeSlots.map((day) => {
 

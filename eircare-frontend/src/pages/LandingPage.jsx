@@ -66,7 +66,7 @@ function LandingPage() {
                             <div className="card-body p-4">
                                 
                                 <h3 className="h5 mb-3">Join Virtual Visits</h3>
-                                <p className="text-secondary mb-0">Attend online consultations through the same booking flow when virtual appointments are available.</p>
+                                <p className="text-secondary mb-0">Attend online consultations when virtual appointments are available.</p>
                             </div>
                         </div>
                     </div>

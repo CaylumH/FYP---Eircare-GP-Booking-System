@@ -42,17 +42,12 @@ const DoctorLogin = () =>
             localStorage.setItem("doctorId", response.doctor.id);
             localStorage.setItem("role", "DOCTOR");
 
-            if (response.doctor.status === "PENDING") {
-
-                navigate("/doctor/pending");
-            } else {
-
-                navigate("/appointments");
-            }
+            navigate("/appointments");
 
         } catch (error) {
-            if (error.message === "ACCOUNT_REJECTED") {
-
+            if (error.message === "ACCOUNT_PENDING") {
+                navigate("/doctor/pending");
+            } else if (error.message === "ACCOUNT_REJECTED") {
                 navigate("/doctor/pending", { state: { denied: true } });
             } else {
                 alert("Login Failed. Please check email and password.");

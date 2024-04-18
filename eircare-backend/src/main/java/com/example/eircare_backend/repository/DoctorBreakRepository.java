@@ -10,4 +10,5 @@ import com.example.eircare_backend.model.DoctorBreak;
 
 public interface DoctorBreakRepository extends JpaRepository<DoctorBreak, Long> {
     List<DoctorBreak> findByDoctorIdAndDay(Long doctorId, DayOfWeek day);
+    void deleteByDoctorId(Long doctorId);
 }

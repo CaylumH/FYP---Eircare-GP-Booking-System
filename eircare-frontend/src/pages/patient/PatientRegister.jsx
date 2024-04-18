@@ -13,13 +13,12 @@ function PatientRegister() {
         streetName: "",
         city: "",
         county: "",
-        country: ""
+        country: "Ireland" //deafult to eire but this should be set om backend
     });
 
     async function handleRegister(e) {
         e.preventDefault();
 
-        //TODO: add fallback for if nominatim fails to find address
         const fullAddress = `${patientRegister.streetName}, ${patientRegister.city}, ${patientRegister.county}, ${patientRegister.country}`;
 
 
@@ -56,7 +55,7 @@ function PatientRegister() {
             //localStorage.setItem("token", userData.token);
             localStorage.setItem("patientEmail", userData.user.email);
 
-            alert("Account Registered. Time to Log in!!!")
+            alert("Account registered! Please log in.");
 
         }
         catch (error) {
@@ -191,7 +190,7 @@ function PatientRegister() {
                                     type="text"
                                     className="form-control"
                                     value={patientRegister.country}
-                                    onChange={(e) => setPatientRegister((prev) => ({ ...prev, country: e.target.value }))} required />
+                                    readOnly />
                             </div>
                         </div>
 

@@ -48,7 +48,7 @@ function AppointmentDetails({ selectedAppointment, setSelectedAppointment, cance
                                 <>
                                     <p><strong>Patient:</strong> {patient.firstName} {patient.lastName}</p>
 
-                                    <p><strong>Email:</strong> {patient.user.email || "n/a"}</p>
+                                    <p><strong>Email:</strong> {patient.user?.email || "n/a"}</p>
 
                                     <p><strong>Phone:</strong> {patient.phoneNumber || "n/a"}</p>
 

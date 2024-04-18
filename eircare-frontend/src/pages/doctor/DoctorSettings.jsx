@@ -11,17 +11,41 @@ function DoctorSettings() {
         firstName: "",
         lastName: "",
         email: "",
-        practiceName: "",
-        practiceAddress: "",
         medicalCouncilNumber: "",
-        phoneNumber: "",
-        streetName: "",
-        city: "",
-        county: "",
-        country: "",
         profilePicture: null,
         providesVirtualAppointments: false,
     });
+
+    const [closedDays, setClosedDays] = useState({
+        Monday: false,
+        Tuesday: false,
+        Wednesday: false,
+        Thursday: false,
+        Friday: false,
+        Saturday: false,
+        Sunday: false
+    });
+
+    const [availability, setAvailability] = useState({
+        "Monday": { openingTime: "", closingTime: "" },
+        "Tuesday": { openingTime: "", closingTime: "" },
+        "Wednesday": { openingTime: "", closingTime: "" },
+        "Thursday": { openingTime: "", closingTime: "" },
+        "Friday": { openingTime: "", closingTime: "" },
+        "Saturday": { openingTime: "", closingTime: "" },
+        "Sunday": { openingTime: "", closingTime: "" }
+    });
+
+    const [breaks, setBreaks] = useState({
+        "Monday": [{ breakStart: "", breakEnd: "" }],
+        "Tuesday": [{ breakStart: "", breakEnd: "" }],
+        "Wednesday": [{ breakStart: "", breakEnd: "" }],
+        "Thursday": [{ breakStart: "", breakEnd: "" }],
+        "Friday": [{ breakStart: "", breakEnd: "" }],
+        "Saturday": [{ breakStart: "", breakEnd: "" }],
+        "Sunday": [{ breakStart: "", breakEnd: "" }]
+    });
+
 //populate form from fetched details
     useEffect(() => {
         if (userDetails) {
@@ -30,9 +54,6 @@ function DoctorSettings() {
                 firstName: userDetails.firstName ?? "",
                 lastName: userDetails.lastName ?? "",
                 email: userDetails.user?.email ?? "",
-                phoneNumber: userDetails.phoneNumber ?? "",
-                practiceAddress: userDetails.practiceAddress ?? "",
-                practiceName: userDetails.practiceName ?? "",
                 medicalCouncilNumber: userDetails.medicalCouncilNumber ?? "",
                 providesVirtualAppointments: userDetails.providesVirtualAppointments ?? false,
             }
@@ -40,11 +61,105 @@ function DoctorSettings() {
         }
     }, [userDetails]);
 
+    useEffect(() => {
+
+        if (!doctorId) return;
+        apiRequest(`/api/doctors/${doctorId}/availability/all`, {
+            headers: { "Authorization": `Bearer ${getToken()}` }
+        }).then((data) => {
+            if (!data || data.length === 0) return;
+            setAvailability((prev) => {
+                const updated = { ...prev };
+
+                data.forEach((slot) => {
+                    const day = slot.day.charAt(0) + slot.day.slice(1).toLowerCase();
+
+                    if (updated[day] !== undefined) {
+                        updated[day] = { openingTime: slot.openingTime ?? "", closingTime: slot.closingTime ?? "" };
+                    }
+                }
+            
+            );
+                return updated;
+            }
+        );
+
+            setClosedDays((prev) => {
+
+                const updated = { ...prev };
+                const activeDays = new Set(data.map((slot) => slot.day.charAt(0) + slot.day.slice(1).toLowerCase()
+            )
+        );
+                Object.keys(updated).forEach((day) => {
+                    updated[day] = !activeDays.has(day);
+                }
+            );
+                return updated;
+            });
+        }
+    ).catch(() => {});
+    }, [doctorId]);
+
+    function handleAvailabilityChange(day, clopeningTime, value) {
+
+        setAvailability((prev) => {
+            const updatedDay = { ...prev[day] };
+
+            updatedDay[clopeningTime] = value;
+            return { ...prev, [day]: updatedDay };
+
+        })
+    }
+
+    function handleBreaksChange(day, breakNumber, breakStartEnd, value) {
+
+        setBreaks((prev) => {
+
+            const dailyBreaks = [...prev[day]];
+
+            const singleBreak = { ...dailyBreaks[breakNumber] };
+
+            singleBreak[breakStartEnd] = value;
+            dailyBreaks[breakNumber] = singleBreak;
+
+            return { ...prev, [day]: dailyBreaks };
+        }
+    
+    );
+    }
+
+    function addDailyBreak(day) {
+
+        setBreaks((prev) => ({
+            ...prev, [day]: [...prev[day], { breakStart: "", breakEnd: "" }]
+        }
+        ));
+    }
+
+    function removeDailyBreak(day, breakNumber) {
+
+        setBreaks((prev) => {
+
+            const updatedDayBreaks = [...prev[day]];
+            updatedDayBreaks.splice(breakNumber, 1);
+            return {
+
+                ...prev, [day]: updatedDayBreaks.length > 0 ? updatedDayBreaks : [{ breakStart: "", breakEnd: "" }]
+            };
+        }
+    );
+    }
+
+    function isTimeValid(start, end) {
+
+        return start && end && start < end;
+    }
+
     function handleProfilePictureChange(e) {
 
         const pfp = e.target.files[0];
-        setDoctorSettings((prev) => ({ 
-            ...prev, profilePicture: pfp 
+        setDoctorSettings((prev) => ({
+            ...prev, profilePicture: pfp
         }));
     }
 
@@ -76,26 +191,6 @@ function DoctorSettings() {
     async function handleUpdateDetails(e) {
         e.preventDefault();
 
-        const addressDetails = [doctorSettings.streetName, 
-            doctorSettings.city, 
-            doctorSettings.county, 
-            doctorSettings.country];
-
-        const addressInputBoolean = addressDetails.some((value) => value.trim() !== "");
-
-        let fullAddress = doctorSettings.practiceAddress;
-
-        if (addressInputBoolean) {
-
-            if (addressDetails.some((value) => value.trim() === "")) {
-
-                alert("Please fill in all address fields to update address");
-                return;
-            }
-
-            fullAddress = `${doctorSettings.streetName.trim()}, ${doctorSettings.city.trim()}, ${doctorSettings.county.trim()}, Ireland`;
-        }
-
         try {
             await apiRequest(`/api/doctors/${doctorId}`, {
                 method: "PUT",
@@ -107,27 +202,110 @@ function DoctorSettings() {
                     user: { email: doctorSettings.email },
                     firstName: doctorSettings.firstName,
                     lastName: doctorSettings.lastName,
-                    phoneNumber: doctorSettings.phoneNumber,
-                    practiceName: doctorSettings.practiceName,
                     medicalCouncilNumber: doctorSettings.medicalCouncilNumber,
-                    practiceAddress: fullAddress,
                     providesVirtualAppointments: doctorSettings.providesVirtualAppointments
                 })
             }
         );
 
-            setDoctorSettings((prev) => ({
-                ...prev,
-                practiceAddress: fullAddress,
-                streetName: "",
-                city: "",
-                county: "",
-                country: "",
-            }));
             alert("Details updated successfully");
         } catch (error) {
             console.error("couldn't update details", error);
             alert("Failed to update details");
+        }
+    }
+
+    async function handleSaveAvailability(e) {
+        e.preventDefault();
+
+        try {
+            await apiRequest(`/api/doctors/${doctorId}/availability`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${getToken()}` }
+            });
+
+            await apiRequest(`/api/doctors/${doctorId}/breaks`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${getToken()}` }
+            });
+
+            for (const day in availability) {
+                const availabilityForDayData = availability[day];
+
+                if (!closedDays[day]) {
+
+                    if (!isTimeValid(
+                        availabilityForDayData.openingTime,
+                        availabilityForDayData.closingTime
+                    )) {
+                        alert(`${day}: Opening time must be before closing time`);
+                        return;
+                    }
+
+                    await apiRequest("/api/doctors/" + doctorId + "/availability", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${getToken()}`
+                        },
+                        body: JSON.stringify({
+                            day: day.toUpperCase(),
+                            openingTime: availabilityForDayData.openingTime,
+                            closingTime: availabilityForDayData.closingTime
+                        })
+                    });
+                }
+            }
+
+            for (const breakDay in breaks) {
+
+                if (closedDays[breakDay]) continue;
+
+                const breaksForDayData = breaks[breakDay];
+
+                for (const breakPeriod of breaksForDayData) {
+                    if (!breakPeriod.breakStart || !breakPeriod.breakEnd) {
+                        continue;
+                    }
+
+                    if (!isTimeValid(breakPeriod.breakStart, breakPeriod.breakEnd)) {
+                        alert(`${breakDay}: Break start must be before break end`);
+                        return;
+                    }
+
+                    const { openingTime, closingTime } = availability[breakDay];
+
+                    if (!openingTime || !closingTime) {
+                        continue;
+                    }
+
+                    if (
+                        breakPeriod.breakStart < openingTime ||
+                        breakPeriod.breakEnd > closingTime
+                    ) {
+                        alert(`${breakDay}: Break must be within working hours`);
+                        return;
+                    }
+
+                    await apiRequest("/api/doctors/" + doctorId + "/breaks", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${getToken()}`
+                        },
+                        body: JSON.stringify({
+                            day: breakDay.toUpperCase(),
+                            breakStart: breakPeriod.breakStart,
+                            breakEnd: breakPeriod.breakEnd
+                        })
+                    });
+                }
+            }
+
+            alert("Availability saved successfully");
+        } catch (error) {
+            console.error("couldn't save availability", error);
+            alert("Failed to save availability");
         }
     }
 
@@ -170,7 +348,7 @@ function DoctorSettings() {
                             <label className="form-label">Email</label>
                             <input
                                 value={doctorSettings.email}
-                                onChange={(e) => 
+                                onChange={(e) =>
                                     setDoctorSettings((prev) => ({ ...prev, email: e.target.value })
                                 )}
                                 type="email"
@@ -185,7 +363,7 @@ function DoctorSettings() {
                                     type="text"
                                     className="form-control"
                                     value={doctorSettings.firstName}
-                                    onChange={(e) => 
+                                    onChange={(e) =>
                                         setDoctorSettings((prev) => ({ ...prev, firstName: e.target.value }))}
                                 />
                             </div>
@@ -195,7 +373,7 @@ function DoctorSettings() {
                                     type="text"
                                     className="form-control"
                                     value={doctorSettings.lastName}
-                                    onChange={(e) => 
+                                    onChange={(e) =>
                                         setDoctorSettings((prev) => ({ ...prev, lastName: e.target.value }))
                                     }
                                 />
@@ -203,12 +381,12 @@ function DoctorSettings() {
                         </div>
 
                         <div className="mb-3">
-                            <label className="form-label">Phone Number</label>
+                            <label className="form-label">Medical Council Number</label>
                             <input
                                 type="text"
                                 className="form-control"
-                                value={doctorSettings.phoneNumber}
-                                onChange={(e) => setDoctorSettings((prev) => ({ ...prev, phoneNumber: e.target.value }))}
+                                value={doctorSettings.medicalCouncilNumber}
+                                onChange={(e) => setDoctorSettings((prev) => ({ ...prev, medicalCouncilNumber: e.target.value }))}
                             />
                         </div>
 
@@ -218,10 +396,10 @@ function DoctorSettings() {
                                 className="form-check-input"
                                 id="providesVirtual"
                                 checked={doctorSettings.providesVirtualAppointments}
-                                onChange={(e) => 
-                                    setDoctorSettings((prev) => ({ 
-                                        ...prev, 
-                                        providesVirtualAppointments: 
+                                onChange={(e) =>
+                                    setDoctorSettings((prev) => ({
+                                        ...prev,
+                                        providesVirtualAppointments:
                                         e.target.checked }
                                     ))
                                 }
@@ -232,69 +410,158 @@ function DoctorSettings() {
 
                         </div>
 
-                        <div className="mb-3">
-
-                            <label className="form-label">Current Address</label>
-
-                            <div className="p-2 border rounded bg-light">{doctorSettings.practiceAddress}</div>
-                        </div>
-
-                        <h5 className="mb-3">Update Address</h5>
-
-                        <div className="row">
-
-                            <div className="col-md-6 mb-3">
-
-                                <label className="form-label">Street Name</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={doctorSettings.streetName}
-                                    onChange={(e) => setDoctorSettings((prev) => ({ ...prev, streetName: e.target.value }))
-                                }
-                                />
-                            </div>
-                            <div className="col-md-6 mb-3">
-                                <label className="form-label">City</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={doctorSettings.city}
-                                    onChange={(e) => 
-                                        setDoctorSettings((prev) => ({ ...prev, city: e.target.value }))}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="row">
-                            <div className="col-md-6 mb-3">
-                                <label className="form-label">County</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={doctorSettings.county}
-                                    onChange={(e) => 
-                                        setDoctorSettings((prev) => ({ ...prev, county: e.target.value }
-
-                                        ))}
-                                />
-                            </div>
-                            <div className="col-md-6 mb-3">
-                                <label className="form-label">Country</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={doctorSettings.country}
-                                    onChange={(e) => setDoctorSettings((prev) => (
-                                        { ...prev, country: e.target.value }
-                                    ))}
-                                />
-                            </div>
-
-                        </div>
-
                         <button type="submit" className="btn btn-success w-100 mt-2">
                             Update Details
+                        </button>
+
+                    </form>
+
+                    {userDetails?.practice && (
+                        <div className="mt-4">
+                            <h5 className="mb-3">Practice</h5>
+                            <div className="p-3 border rounded bg-light">
+                                <div className="fw-semibold">{userDetails.practice.name}</div>
+                                <div className="text-muted small">{userDetails.practice.address}</div>
+                                <div className="text-muted small">{userDetails.practice.phoneNumber}</div>
+                            </div>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSaveAvailability}>
+
+                        <h5 className="mt-4 mb-3">Availability</h5>
+
+                        {Object.keys(availability).map((day) => (
+                            <div key={day} className="mb-3 p-3 border rounded">
+
+                                <strong>{day}</strong>
+
+                                <div className="row mt-2">
+                                    <div className="col-md-6">
+                                        <label className="form-label">Opening</label>
+                                        <input
+                                            type="time"
+                                            required={!closedDays[day]}
+                                            disabled={closedDays[day]}
+                                            className="form-control"
+                                            value={availability[day].openingTime}
+                                            onChange={(e) =>
+                                                handleAvailabilityChange(day, "openingTime", e.target.value)
+                                            }
+
+                                        />
+                                    </div>
+
+                                    <div className="col-md-6">
+                                        <label className="form-label">Closing</label>
+                                        <input
+                                            type="time"
+                                            required={!closedDays[day]}
+                                            disabled={closedDays[day]}
+                                            className="form-control"
+                                            value={availability[day].closingTime}
+                                            onChange={(e) =>
+                                                handleAvailabilityChange(day, "closingTime", e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="form-check mt-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={closedDays[day]}
+                                        onChange={(e) => {
+                                            const isClosed = e.target.checked;
+
+                                            setClosedDays((prev) => ({
+                                                ...prev,
+                                                [day]: isClosed
+                                            }));
+
+                                            if (isClosed) {
+                                                handleAvailabilityChange(day, "openingTime", "");
+                                                handleAvailabilityChange(day, "closingTime", "");
+                                            }
+                                        }}
+                                    />
+                                    <label className="form-check-label">Closed this day</label>
+                                </div>
+                            </div>
+                        ))}
+
+                        <h5 className="mt-4 mb-3">Breaks</h5>
+
+                        {Object.keys(breaks).map((breakDay) => (
+                            <div key={breakDay} className="mb-3 p-3 border rounded">
+
+                                <strong>{breakDay}</strong>
+
+                                {breaks[breakDay].map((breakWindow, breakIndex) => (
+                                    <div key={breakIndex} className="row mt-2">
+
+                                        <div className="col-md-5">
+                                            <input
+                                                type="time"
+
+                                                disabled={closedDays[breakDay]}
+                                                className="form-control"
+                                                value={breakWindow.breakStart}
+                                                onChange={(e) =>
+                                                    handleBreaksChange(
+                                                        breakDay,
+                                                        breakIndex,
+                                                        "breakStart",
+                                                        e.target.value
+                                                    )
+                                                }
+                                            />
+                                        </div>
+
+                                        <div className="col-md-5">
+                                            <input
+                                                type="time"
+
+                                                disabled={closedDays[breakDay]}
+                                                className="form-control"
+                                                value={breakWindow.breakEnd}
+                                                onChange={(e) =>
+                                                    handleBreaksChange(
+                                                        breakDay,
+                                                        breakIndex,
+                                                        "breakEnd",
+                                                        e.target.value
+                                                    )
+                                                }
+                                            />
+                                        </div>
+
+                                        <div className="col-md-2">
+                                            <button
+                                                type="button"
+                                                className="btn btn-danger w-100"
+                                                onClick={() =>
+                                                    removeDailyBreak(breakDay, breakIndex)
+                                                }
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-success mt-2"
+                                    onClick={() => addDailyBreak(breakDay)}
+                                >
+                                    Add Break
+                                </button>
+                            </div>
+                        ))}
+
+                        <button type="submit" className="btn btn-success w-100 mt-2 mb-4">
+                            Save Availability
                         </button>
 
                     </form>
@@ -302,7 +569,7 @@ function DoctorSettings() {
                 </div>
             </div>
         </div>
-        
+
     );
 }
 

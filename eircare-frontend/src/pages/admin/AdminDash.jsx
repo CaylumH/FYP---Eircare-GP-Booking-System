@@ -8,6 +8,9 @@ function AdminDash() {
     const [activeTab, setActiveTab] = useState("pendingDoctors");
     const [pendingDoctors, setPendingDoctors] = useState([]);
     const [users, setUsers] = useState([]);
+    const [missingCoordPractices, setMissingCoordPractices] = useState([]);
+    const [aiGeocodingId, setAiGeoCodingId] = useState(null);
+    const [reGeocodingAll, setReGeocodingAll] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     const token = getToken();
@@ -44,9 +47,22 @@ function AdminDash() {
             }
         };
 
+        const fetchMissingCoordPractices = async () => {
+
+            try {
+                const data = await apiRequest("/api/admin/practices/missing-coordinates", {
+                    headers: { Authorization: "Bearer " + token },
+                });
+                setMissingCoordPractices(data);
+            } catch (error) {
+                console.error("failed to fetch practices missing coords", error);
+            }
+        };
+
         const load = async () => {
             await fetchPendingDoctors();
             await fetchUsers();
+            await fetchMissingCoordPractices();
             setIsLoading(false);
         };
         load();
@@ -90,10 +106,52 @@ function AdminDash() {
 }
 
 
-async function deleteUser(userId) {
-    const ok = window.confirm("Delete this user? This action cannot be undone.");
-    if (!ok) return;
+async function reGeocodeAll() {
 
+    setReGeocodingAll(true);
+
+    try {
+        await apiRequest("/api/admin/practices/re-geocode-all", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + token },
+        });
+
+        alert("Re-geocoding started");
+    } catch (error) {
+
+        console.error("Failed to start re-geocoding", error);
+
+        alert("Failed to start re-geocoding");
+    } finally {
+
+        setReGeocodingAll(false);
+    }
+}
+
+async function aiGeocodePractice(practiceId) {
+
+    setAiGeoCodingId(practiceId);
+    try {
+
+        await apiRequest(`/api/admin/practices/${practiceId}/ai-geocode`, {
+            method: "POST",
+            headers: { Authorization: "Bearer " + token },
+        }
+    );
+
+        setMissingCoordPractices((prev) => prev.filter((practice) => practice.id !== practiceId));
+
+    } catch (err) {
+
+        console.error("Failed to AI geocode practice", err);
+        alert("AI geocoding failed for this practice");
+
+    } finally {
+        setAiGeoCodingId(null);
+
+    }}
+
+async function deleteUser(userId) {
     try {
         await apiRequest(`/api/admin/users/${userId}`, {
             method: "DELETE",
@@ -151,6 +209,23 @@ return (
                     Users
                 </button>
             </li>
+
+            <li className="nav-item">
+                <button
+                    className={`nav-link ${
+                        activeTab === "practices" ? "active" : ""
+                    }`}
+                    onClick={() => setActiveTab("practices")}
+                >
+                    Practices
+                    {missingCoordPractices.length > 0 && (
+                        <span className="badge bg-danger ms-2">
+
+                            {missingCoordPractices.length}
+                        </span>
+                    )}
+                </button>
+            </li>
         </ul>
 
         {activeTab === "pendingDoctors" && (
@@ -196,6 +271,66 @@ return (
                 )}
             </div>
         )}
+
+        {activeTab === "practices" && (
+            <div>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+
+                    <h5 className="text-muted fw-normal mb-0">
+                        Practices missing GPS coordinates ({missingCoordPractices.length})
+                    </h5>
+                    <button
+                        className="btn btn-success btn-sm"
+                        disabled={reGeocodingAll || missingCoordPractices.length === 0}
+                        onClick={reGeocodeAll}
+                    >
+                        {reGeocodingAll ? "Starting..." : "Re-geocode All"}
+                    </button>
+                </div>
+                {missingCoordPractices.length === 0 ? (
+                    <p className="text-muted">All practices have coordinates.</p>
+                ) : (
+                    <div className="table-responsive">
+
+                        <table className="table table-hover align-middle">
+
+                            <thead className="table-light">
+
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Address</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {missingCoordPractices.map((practice) => (
+                                    <tr key={practice.id}>
+                                        <td className="text-muted small">{practice.id}</td>
+                                        <td>{practice.name}</td>
+                                        <td className="text-muted small">{practice.address}</td>
+                                        <td>
+                                            <button
+                                                className="btn btn-outline-success btn-sm"
+                                                disabled={aiGeocodingId === practice.id}
+                                                onClick={() => aiGeocodePractice(practice.id)}
+                                            >
+                                                {aiGeocodingId === practice.id ? "AI Geocoding..." : "AI Geocode"}
+                                            </button>
+
+                                        </td>
+                                    </tr>
+                                )
+                            )
+                                }
+                            </tbody>
+                        </table>
+
+                    </div>
+                )}
+            </div>
+        )
+        }
 
         {activeTab === "users" && (
             <div className="table-responsive">
