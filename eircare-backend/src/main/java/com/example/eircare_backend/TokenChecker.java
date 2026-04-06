@@ -5,7 +5,9 @@ import com.example.eircare_backend.model.Patient;
 import com.example.eircare_backend.repository.DoctorRepository;
 import com.example.eircare_backend.repository.PatientRepository;
 import io.jsonwebtoken.Claims;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 @Component
     public class TokenChecker {
@@ -24,14 +26,15 @@ import org.springframework.stereotype.Component;
         if (header != null && header.startsWith("Bearer ")) {
             return header.substring(7);
         }
-        throw new RuntimeException("No token");
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No token");
     }
 
     public Claims validTokenRequired(String header) {
         String token = extractTokenFromHeader(header);
 
         if (!jwtUtil.isTokenValid(token)) {
-            throw new RuntimeException("Token no good pal");
+
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token invalid or expired");
         }
         return jwtUtil.getClaims(token);
     }
@@ -40,7 +43,7 @@ import org.springframework.stereotype.Component;
         String token = extractTokenFromHeader(header);
         validTokenRequired(header);
         if (!jwtUtil.isRoleValid(token, role)) {
-            throw new RuntimeException("User not authorised");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User not authorised");
         }
     }
 
@@ -54,11 +57,11 @@ import org.springframework.stereotype.Component;
             }
         }
 
-        throw new RuntimeException("User not authorised");
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User not authorised");
     }
 
     public void idRequired(String header, User.Role role, Long idFromRequest) {
-        
+
         Claims claims = validTokenRequired(header);
         String email = claims.getSubject();
         Long idFromToken;
@@ -66,25 +69,26 @@ import org.springframework.stereotype.Component;
         if (role == User.Role.DOCTOR) {
             Doctor doctor = doctorRepository.findByUserEmail(email);
             if (doctor == null) {
-                throw new RuntimeException("Doctor not found");
+
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Doctor not found");
             }
             idFromToken = doctor.getId();
-        } 
+        }
         else if (role == User.Role.PATIENT) {
             Patient patient = patientRepository.findByUserEmail(email);
 
             if (patient == null) {
-
-                throw new RuntimeException("Patient not found");
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Patient not found");
             }
             idFromToken = patient.getId();
-            
+
         } else {
-            throw new RuntimeException("Ivalid role");
+            
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role");
         }
 
         if (!idFromToken.equals(idFromRequest)) {
-            throw new RuntimeException("User not authorised");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User not authorised");
         }
     }
     }

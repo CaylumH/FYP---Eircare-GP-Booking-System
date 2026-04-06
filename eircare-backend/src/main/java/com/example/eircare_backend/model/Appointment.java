@@ -35,7 +35,7 @@ public class Appointment {
     private String appointmentDescription;
     private AppointmentType appointmentType;
     private AppointmentStatus appointmentStatus;
-    private boolean needsTranslator;
+    private Boolean needsTranslator;
     private String translatorLanguage;
     private String roomName;
     private ConsultationType consultationType;
@@ -46,7 +46,7 @@ public class Appointment {
     public Appointment() {
     }
 
-    public Appointment(Long appointmentId, Doctor doctor, Patient patient, LocalDateTime appointmentStart, LocalDateTime appointmentEnd, String appointmentDescription, AppointmentType appointmentType, AppointmentStatus appointmentStatus, boolean needsTranslator, String translatorLanguage, String roomName) {
+    public Appointment(Long appointmentId, Doctor doctor, Patient patient, LocalDateTime appointmentStart, LocalDateTime appointmentEnd, String appointmentDescription, AppointmentType appointmentType, AppointmentStatus appointmentStatus, Boolean needsTranslator, String translatorLanguage, String roomName) {
         this.appointmentId = appointmentId;
         this.doctor = doctor;
         this.patient = patient;
@@ -73,10 +73,10 @@ public class Appointment {
     }
 
     public boolean isNeedsTranslator() {
-        return needsTranslator;
+        return needsTranslator != null && needsTranslator;
     }
 
-    public void setNeedsTranslator(boolean needsTranslator) {
+    public void setNeedsTranslator(Boolean needsTranslator) {
         this.needsTranslator = needsTranslator;
     }
 

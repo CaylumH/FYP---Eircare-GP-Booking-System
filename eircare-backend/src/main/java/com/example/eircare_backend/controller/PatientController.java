@@ -53,6 +53,7 @@ public class PatientController {
 
     @GetMapping("/{id}")
     public Patient getPatientById(@PathVariable Long id, @RequestHeader("Authorization") String tokenHeader) {
+        System.out.println("getPatientById " + id);
         tokenChecker.validTokenRequired(tokenHeader);
         return patientRepository.findById(id).orElseThrow(() -> new RuntimeException("Patient not found"));
     }

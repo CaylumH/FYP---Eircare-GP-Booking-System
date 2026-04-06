@@ -23,7 +23,7 @@ public class AppointmentService {
         LocalDateTime timeAhora = LocalDateTime.now();
 
                 for (Appointment appointment : appointments){
-                    if(appointment.getAppointmentEnd().isBefore(timeAhora) && appointment.getAppointmentStatus() != Appointment.AppointmentStatus.COMPLETED && appointment.getAppointmentStatus() != Appointment.AppointmentStatus.CANCELLED){
+                    if(appointment.getAppointmentEnd() != null && appointment.getAppointmentEnd().isBefore(timeAhora) && appointment.getAppointmentStatus() != Appointment.AppointmentStatus.COMPLETED && appointment.getAppointmentStatus() != Appointment.AppointmentStatus.CANCELLED){
                         appointment.setAppointmentStatus(Appointment.AppointmentStatus.COMPLETED);
                         completedAppointments.add(appointment);
                     }

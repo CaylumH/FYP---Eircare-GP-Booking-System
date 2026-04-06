@@ -55,10 +55,15 @@ public class JWTUtil {
     }
 
     public boolean isTokenValid(String token) {
+        try {
             Claims claims = getClaims(token);
             Date tokenExpiration = claims.getExpiration();
             return tokenExpiration.after(new Date());
-        } 
+        } catch (Exception e) {
+            
+            return false;
+        }
+    }
 
     public boolean isRoleValid(String token, Role role) {
         return getTokenRole(token).equals(role.name());

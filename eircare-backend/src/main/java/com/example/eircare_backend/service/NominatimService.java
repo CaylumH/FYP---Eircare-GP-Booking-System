@@ -43,6 +43,7 @@ public class NominatimService {
                 throw new RuntimeException("Couldnt get address");
             }
 
-            return new LatLong(responseEntity.getBody()[0].getLat(), responseEntity.getBody()[0].getLon());
+            NominatimResponse result = responseEntity.getBody()[0];
+            return new LatLong(Double.parseDouble(result.getLat()), Double.parseDouble(result.getLon()));
         };
     }
