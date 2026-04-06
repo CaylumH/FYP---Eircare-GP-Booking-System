@@ -23,4 +23,22 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     @Query("SELECT a FROM Appointment a WHERE a.doctor.id = :doctorId AND a.appointmentStart >= :startDate AND a.appointmentStart < :endDate")
     List<Appointment> findByDoctorIdAndWeekStartAndWeekEnd(@Param ("doctorId") Long doctorId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
+    @Query("SELECT a FROM Appointment a WHERE a.doctor.id = :doctorId " +
+           "AND a.appointmentStatus NOT IN :statusExcluded " +
+           "AND a.appointmentStart < :endTime " +
+           "AND a.appointmentEnd > :startTime")
+    List<Appointment> findOverlappingAppointments(
+        @Param("doctorId") Long doctorId,
+        @Param("startTime") LocalDateTime startTime,
+        @Param("endTime") LocalDateTime endTime,
+        @Param("statusExcluded") List<Appointment.AppointmentStatus> statusExcluded);
+
+    @Query("SELECT a FROM Appointment a WHERE a.doctor.id = :doctorId " +
+           "AND a.appointmentStart >= :startDateTime " +
+           "AND a.appointmentStart < :endDateTime")
+    List<Appointment> findByDoctorIdAndDateRange(
+        @Param("doctorId") Long doctorId,
+        @Param("startDateTime") LocalDateTime startDateTime,
+        @Param("endDateTime") LocalDateTime endDateTime);
+
 }

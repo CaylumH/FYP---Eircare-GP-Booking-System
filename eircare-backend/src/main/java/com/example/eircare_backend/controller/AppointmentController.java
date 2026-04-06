@@ -6,7 +6,9 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.example.eircare_backend.dto.DaySchedule;
 import com.example.eircare_backend.dto.TimeSlot;
@@ -36,7 +39,7 @@ import io.jsonwebtoken.Claims;
 
 @RestController
 @RequestMapping("/api/appointments")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*")
 public class AppointmentController {
     private final AppointmentRepository appointmentRepository;
     private final DoctorRepository doctorRepository;
@@ -87,9 +90,21 @@ public class AppointmentController {
 
     @PostMapping
     public Appointment createAppointment(@RequestBody Appointment appointment, @RequestHeader("Authorization") String tokenHeader) {
-            tokenChecker.multiRolesRequired(tokenHeader, User.Role.DOCTOR, User.Role.PATIENT);
+            Claims claims = tokenChecker.validTokenRequired(tokenHeader);
+            String role = claims.get("role", String.class);
 
-            System.out.println(appointment.getAppointmentStart());
+            if (!"DOCTOR".equals(role) && !"PATIENT".equals(role)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User not authorised");
+            }
+
+            // patients can only book appointments for themselves VERTY IMPORTANT lol
+            if ("PATIENT".equals(role)) {
+
+                if (appointment.getPatient() == null) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Patient required");
+                }
+                tokenChecker.idRequired(tokenHeader, User.Role.PATIENT, appointment.getPatient().getId());
+            }
 
             if (!appointment.isNeedsTranslator()) {
                 appointment.setTranslatorLanguage(null);
@@ -104,22 +119,18 @@ public class AppointmentController {
             } else if (appointment.getAppointmentDuration() != null) {
                 duration = appointment.getAppointmentDuration();
             } else {
-                duration = 15; //Default to 15 mins just in case
+                duration = 15; //default to 15 just incase
             }
 
-            List<Appointment> bookedAppointments = appointmentRepository.findAll();
+            List<Appointment> overlapping = appointmentRepository.findOverlappingAppointments(
 
-            for (Appointment bookedAppointment : bookedAppointments) {
-                if (bookedAppointment.getDoctor() != null
-                    && bookedAppointment.getDoctor().getId().equals(appointment.getDoctor().getId())
-                    && bookedAppointment.getAppointmentStatus() != Appointment.AppointmentStatus.CANCELLED
-                    && bookedAppointment.getAppointmentStatus() != Appointment.AppointmentStatus.UNAVAILABLE
-                    && bookedAppointment.getAppointmentStart() != null
-                    && bookedAppointment.getAppointmentEnd() != null
-                    && bookedAppointment.getAppointmentStart().isBefore(appointment.getAppointmentStart().plusMinutes(duration))
-                    && bookedAppointment.getAppointmentEnd().isAfter(appointment.getAppointmentStart())) {
-                    throw new RuntimeException("Timeslot is already booked");
-                }
+                appointment.getDoctor().getId(),
+                appointment.getAppointmentStart(),
+                appointment.getAppointmentStart().plusMinutes(duration),
+                List.of(Appointment.AppointmentStatus.CANCELLED));
+
+            if (!overlapping.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Timeslot is already booked");
             }
 
             LocalDateTime appointmentStart = appointment.getAppointmentStart();
@@ -127,14 +138,10 @@ public class AppointmentController {
             appointment.setAppointmentEnd(appointmentEnd);
 
         if (doctorRepository.findById(appointment.getDoctor().getId()).isEmpty()) {
-            throw new RuntimeException("Doctor does not exist");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Doctor does not exist");
         }
         if (appointment.getPatient() != null && patientRepository.findById(appointment.getPatient().getId()).isEmpty()) {
-            throw new RuntimeException("Patient does not exist");
-        }
-        if (appointmentRepository.existsByDoctorIdAndAppointmentStart(
-                appointment.getDoctor().getId(), appointment.getAppointmentStart())) {
-            throw new RuntimeException("Timeslot is already booked");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Patient does not exist");
         }
         return appointmentRepository.save(appointment);
     }
@@ -148,7 +155,8 @@ public class AppointmentController {
         String emailRequest  = claims.getSubject();
         boolean isAssignedDoctor = emailRequest.equals(appointment.getDoctor().getUser().getEmail());
 
-        boolean isAssignedPatient = emailRequest.equals(appointment.getPatient().getUser().getEmail());
+        boolean isAssignedPatient = appointment.getPatient() != null &&
+                emailRequest.equals(appointment.getPatient().getUser().getEmail());
 
         if (!isAssignedDoctor && !isAssignedPatient) {
             throw new RuntimeException("Role not authorized");
@@ -158,14 +166,14 @@ public class AppointmentController {
         //Future work (for report) would definitely include proper jwt validation
         if (isAssignedDoctor) {
             if (appointment.getRoomName() == null || appointment.getRoomName().isBlank()) {
-                appointment.setRoomName("eircare-virtual-appointment-" + appointment.getAppointmentId());
+                appointment.setRoomName("eircare-" + UUID.randomUUID().toString().replace("-", ""));
             }
             appointmentRepository.save(appointment);
             return Map.of("roomName", appointment.getRoomName(), "role", "DOCTOR");
         }
 
         if (appointment.getRoomName() == null || appointment.getRoomName().isBlank()) {
-            throw new RuntimeException("Doctor has not started the appointment yet");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Doctor has not started the appointment yet");
         }
 
         return Map.of("roomName", appointment.getRoomName(), "role", "PATIENT");
@@ -182,26 +190,35 @@ public class AppointmentController {
         LocalDate startDate = LocalDate.parse(weekStart);
         LocalDate endDate = LocalDate.parse(weekEnd);
 
-        //slots for entire week 
+        //slots for entire week
         //key is date, value is list of time slots
         List<DaySchedule> weekSchedule = new ArrayList<>();
 
-        
+    
+        List<Appointment> weekAppointments = appointmentRepository.findByDoctorIdAndDateRange(
+
+                id, startDate.atStartOfDay(), endDate.plusDays(1).atStartOfDay());
+
         //loops each day of week
         for (LocalDate date = startDate; date.isBefore(endDate.plusDays(1)); date = date.plusDays(1)) {
-            
+
             //slots for single day
-            
+
             List<TimeSlot> daySlots = new ArrayList<>();
-            List<Appointment> appointmentsForDay = appointmentRepository.findByDoctorIdAndAppointmentDate(id, date);
+            final LocalDate currentDate = date;
+
+            List<Appointment> appointmentsForDay = weekAppointments.stream()
+
+                    .filter(a -> a.getAppointmentStart().toLocalDate().equals(currentDate))
+                    .toList();
 
 
             DayOfWeek dayOfWeek = date.getDayOfWeek();
 
-            DoctorAvailability doctorAvailability = doctorAvailabilityRepository.findByDoctorIdAndDay(id, dayOfWeek.toString());
+            DoctorAvailability doctorAvailability = doctorAvailabilityRepository.findByDoctorIdAndDay(id, dayOfWeek);
 
             //marks slot as booked if during break
-            List<DoctorBreak> dailyBreaks = doctorBreakRepository.findByDoctorIdAndDay(id, dayOfWeek.toString());
+            List<DoctorBreak> dailyBreaks = doctorBreakRepository.findByDoctorIdAndDay(id, dayOfWeek);
 
             //if availablity is null, doctor is off work
             if (doctorAvailability == null) {
@@ -230,8 +247,8 @@ public class AppointmentController {
                             LocalTime breakStart = LocalTime.parse(doctorBreak.getBreakStart());
                             LocalTime breakEnd = LocalTime.parse(doctorBreak.getBreakEnd());
 
-                        ///if slots during break, treated as bookde
-                            if (!time.isBefore(breakStart) && time.isBefore(breakEnd)) {
+                        // block slot if any part of the 15-min slot overlaps the break
+                            if (time.plusMinutes(15).isAfter(breakStart) && time.isBefore(breakEnd)) {
                                 booked = true;
                                 break;
                             }
@@ -272,6 +289,33 @@ public class AppointmentController {
         return weekSchedule; 
     }
 
+        @PostMapping("/doctor/{id}/mark-unavailable")
+public void markUnavailable(
+        @PathVariable Long id,
+        @RequestParam String date,
+        @RequestParam String time,
+        @RequestHeader("Authorization") String tokenHeader
+) {
+    tokenChecker.roleRequired(tokenHeader, User.Role.DOCTOR);
+    tokenChecker.idRequired(tokenHeader, User.Role.DOCTOR, id);
+
+    LocalDateTime appointmentStart = LocalDate.parse(date).atTime(LocalTime.parse(time));
+
+    LocalDateTime appointmentEnd = appointmentStart.plusMinutes(15);
+
+    com.example.eircare_backend.model.Doctor doctor = doctorRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Doctor not found"));
+
+    Appointment unavailable = new Appointment();
+
+    unavailable.setDoctor(doctor);
+    unavailable.setAppointmentStart(appointmentStart);
+    unavailable.setAppointmentEnd(appointmentEnd);
+
+    unavailable.setAppointmentStatus(Appointment.AppointmentStatus.UNAVAILABLE);
+
+    appointmentRepository.save(unavailable);
+}
 
     @PostMapping("/{id}/cancel")
     public void cancelAppointment(@PathVariable Long id, @RequestHeader("Authorization") String token) {
