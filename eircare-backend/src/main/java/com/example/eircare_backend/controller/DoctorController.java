@@ -7,11 +7,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.DayOfWeek;
 import java.time.LocalTime;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,7 +49,7 @@ import com.example.eircare_backend.TokenChecker;
 
 @RestController
 @RequestMapping("/api/doctors")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*")
 public class DoctorController {
 
     private final DoctorRepository doctorRepository;
@@ -82,7 +84,8 @@ public class DoctorController {
     @PostMapping("/register")
     public Doctor registerDoctor(@RequestBody Doctor doctor) {
         if (userRepository.findByEmail(doctor.getUser().getEmail()) != null) {
-            throw new RuntimeException("Email already exists");
+
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
 
         try{
@@ -94,13 +97,14 @@ public class DoctorController {
         doctor.setLongitude(latLong.getLongitude());
         }
         catch (RuntimeException e) {
-            throw new RuntimeException("Invalid Address");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid address: could not geocode practice address");
         }
 
         //hash password
         doctor.getUser().setPassword(passwordHasher.encode(doctor.getUser().getPassword()));
         userRepository.save(doctor.getUser());
 
+        doctor.setStatus(Doctor.Status.PENDING);
         return doctorRepository.save(doctor);
     }
 
@@ -108,10 +112,15 @@ public class DoctorController {
     public LoginResponse loginDoctor(@RequestBody LoginRequest request) {
         Doctor doctor = doctorRepository.findByUserEmail(request.getEmail());
         if (doctor == null) {
+            
             throw new RuntimeException("Wrong email");
         }
         if (!passwordHasher.matches(request.getPassword(), doctor.getUser().getPassword())) {
             throw new RuntimeException("Wrong password pal");
+        }
+        if (doctor.getStatus() == Doctor.Status.REJECTED) {
+            
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "ACCOUNT_REJECTED");
         }
         String token = jwtUtil.createToken(doctor.getUser().getEmail(), doctor.getUser().getRole());
         return new LoginResponse(token, doctor);
@@ -160,6 +169,7 @@ public class DoctorController {
 
     @DeleteMapping("/{id}")
     public void deleteDoctor(@PathVariable Long id, @RequestHeader("Authorization") String tokenHeader) {
+        
         tokenChecker.validTokenRequired(tokenHeader);
         tokenChecker.roleRequired(tokenHeader, User.Role.DOCTOR);
         tokenChecker.idRequired(tokenHeader, User.Role.DOCTOR, id);
@@ -168,6 +178,7 @@ public class DoctorController {
 
     @GetMapping("/sorted")
     public List<Doctor> getSortedDoctors(@RequestHeader("Authorization") String tokenHeader) {
+        
         tokenChecker.validTokenRequired(tokenHeader);
         String token = tokenChecker.extractTokenFromHeader(tokenHeader);
         Patient patient = patientRepository.findByUserEmail(jwtUtil.getClaims(token).getSubject());
@@ -265,22 +276,31 @@ public class DoctorController {
     }
 
     @PostMapping("/{doctorId}/availability")
-    public void setDoctorAvailability(@PathVariable Long doctorId, @RequestBody DoctorAvailability doctorAvailability) {
-
-        System.out.println(doctorAvailability.getDay() + " " + doctorAvailability.getOpeningTime() + " " + doctorAvailability.getClosingTime());
+    public void setDoctorAvailability(@PathVariable Long doctorId, @RequestBody DoctorAvailability doctorAvailability, @RequestHeader("Authorization") String tokenHeader) {
+        tokenChecker.roleRequired(tokenHeader, User.Role.DOCTOR);
+        tokenChecker.idRequired(tokenHeader, User.Role.DOCTOR, doctorId);
 
         doctorService.setDoctorAvailability(doctorId, doctorAvailability.getDay(), doctorAvailability.getOpeningTime(), doctorAvailability.getClosingTime());
     }
 
     @GetMapping("/{doctorId}/availability")
-    public DoctorAvailability getDoctorAvailability(@PathVariable Long doctorId, @RequestParam String day) {
+    public DoctorAvailability getDoctorAvailability(@PathVariable Long doctorId, @RequestParam String day, @RequestHeader("Authorization") String tokenHeader) {
+        tokenChecker.validTokenRequired(tokenHeader);
         return doctorService.getDoctorAvailability(doctorId, day);
     }
 
-    @PostMapping("/{doctorId}/breaks")
-    public DoctorBreak addDoctorBreak(@PathVariable Long doctorId, @RequestBody DoctorBreak doctorBreak) {
+    @GetMapping("/{doctorId}/availability/all")
+    public List<DoctorAvailability> getAllDoctorAvailability(@PathVariable Long doctorId, @RequestHeader("Authorization") String tokenHeader) {
+        tokenChecker.validTokenRequired(tokenHeader);
+        return doctorAvailabilityRepository.findByDoctorId(doctorId);
+    }
 
-        DoctorAvailability doctorAvailability = doctorAvailabilityRepository.findByDoctorIdAndDay(doctorId, doctorBreak.getDay().toString());
+    @PostMapping("/{doctorId}/breaks")
+    public DoctorBreak addDoctorBreak(@PathVariable Long doctorId, @RequestBody DoctorBreak doctorBreak, @RequestHeader("Authorization") String tokenHeader) {
+        tokenChecker.roleRequired(tokenHeader, User.Role.DOCTOR);
+        tokenChecker.idRequired(tokenHeader, User.Role.DOCTOR, doctorId);
+
+        DoctorAvailability doctorAvailability = doctorAvailabilityRepository.findByDoctorIdAndDay(doctorId, doctorBreak.getDay());
         if (doctorAvailability == null || doctorAvailability.getOpeningTime() == null || doctorAvailability.getClosingTime() == null) {
             throw new RuntimeException("Set availability before adding breaks");
         }
@@ -303,8 +323,9 @@ public class DoctorController {
     }
 
     @GetMapping("/{doctorId}/breaks")
-    public List<DoctorBreak> getDoctorBreaks(@PathVariable Long doctorId, @RequestParam String day) {
-        return doctorBreakRepository.findByDoctorIdAndDay(doctorId, day.toUpperCase());
+    public List<DoctorBreak> getDoctorBreaks(@PathVariable Long doctorId, @RequestParam String day, @RequestHeader("Authorization") String tokenHeader) {
+        tokenChecker.validTokenRequired(tokenHeader);
+        return doctorBreakRepository.findByDoctorIdAndDay(doctorId, DayOfWeek.valueOf(day.toUpperCase()));
     }
 
 

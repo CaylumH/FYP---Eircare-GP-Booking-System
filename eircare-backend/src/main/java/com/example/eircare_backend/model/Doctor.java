@@ -1,6 +1,8 @@
 package com.example.eircare_backend.model;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -31,13 +33,16 @@ public class Doctor{
     private Double longitude;
     private Boolean providesVirtualAppointments;
 
+    @Enumerated(EnumType.STRING)
+    private Status status = Status.PENDING;
+
     @Transient
     private Double distance;
 
     public Doctor() {
     }
     
-    public Doctor(Long id, User user, String practiceName, String firstName, String lastName, String phoneNumber, String practiceAddress, String medicalCouncilNumber, Boolean isVerified, Double latitude, Double longitude, Boolean providesVirtualAppointments) {
+    public Doctor(Long id, User user, String practiceName, String firstName, String lastName, String phoneNumber, String practiceAddress, String medicalCouncilNumber, Boolean isVerified, Double latitude, Double longitude, Boolean providesVirtualAppointments, Status status) {
         this.id = id;
         this.user = user;
         this.practiceName = practiceName;
@@ -50,6 +55,7 @@ public class Doctor{
         this.latitude = latitude;
         this.longitude = longitude;
         this.providesVirtualAppointments = providesVirtualAppointments;
+        this.status = status;
     }
 
     public Long getId() {
@@ -74,6 +80,12 @@ public class Doctor{
 
     public void setPracticeName(String practiceName) {
         this.practiceName = practiceName;
+    }
+
+    public enum Status {
+        PENDING,
+        APPROVED,
+        REJECTED
     }
 
     public String getFirstName() {
@@ -162,5 +174,13 @@ public class Doctor{
 
     public void setProvidesVirtualAppointments(Boolean providesVirtualAppointments) {
         this.providesVirtualAppointments = providesVirtualAppointments;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
     }
 }

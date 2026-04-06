@@ -24,7 +24,7 @@ public class User {
     public User() {
     }
 
-    public User(Long id, String email, String password, Role role,) {
+    public User(Long id, String email, String password, Role role) {
         this.id = id;
         this.email = email;
         this.password = password;
@@ -33,7 +33,8 @@ public class User {
 
     public enum Role {
         DOCTOR,
-        PATIENT
+        PATIENT,
+        ADMIN
     }
 
     public Long getId() {

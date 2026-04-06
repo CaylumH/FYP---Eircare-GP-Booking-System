@@ -22,7 +22,8 @@ public class DoctorService {
     }
 
     public List<Doctor> DoctorSorter(double patientLatitude, double patientLongitude) {
-        List<Doctor> doctors = doctorRepository.findAll();
+
+        List<Doctor> doctors = doctorRepository.findByStatus(Doctor.Status.APPROVED);
 
         DoctorComparator comparator = new DoctorComparator(patientLatitude, patientLongitude);
         
@@ -35,9 +36,11 @@ public class DoctorService {
     }
 
     public void setDoctorAvailability(Long doctorId, DayOfWeek day, String openingTime, String closingTime) {
-        DoctorAvailability doctorAvailability = doctorAvailabilityRepository.findByDoctorIdAndDay(doctorId, day.toString());
+
+        DoctorAvailability doctorAvailability = doctorAvailabilityRepository.findByDoctorIdAndDay(doctorId, day);
 
         if (doctorAvailability == null) {
+
             doctorAvailability = new DoctorAvailability();
             doctorAvailability.setDoctorId(doctorId);
             doctorAvailability.setDay(day);
@@ -49,8 +52,8 @@ public class DoctorService {
     }
 
     public DoctorAvailability getDoctorAvailability(Long doctorId, String day) {
-        String dayUpperCase = day.toUpperCase();
-        return doctorAvailabilityRepository.findByDoctorIdAndDay(doctorId, dayUpperCase);
+        
+        return doctorAvailabilityRepository.findByDoctorIdAndDay(doctorId, DayOfWeek.valueOf(day.toUpperCase()));
     }
     
 }
