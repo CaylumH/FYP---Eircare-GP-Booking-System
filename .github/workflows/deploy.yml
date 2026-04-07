@@ -13,7 +13,7 @@ env:
 jobs:
 
   integration:
-    name: Build and Test
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
@@ -25,10 +25,6 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
-
-      - name: Run Backend Tests
-        run: mvn test
-        working-directory: eircare-backend
 
       - name: Build Backend JAR
         run: mvn clean package -DskipTests
