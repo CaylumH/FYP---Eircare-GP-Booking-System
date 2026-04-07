@@ -1,0 +1,88 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #198754;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #198754;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+.nav-btn {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.day-header {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background-color: #198754; /* bootstrap success */
+  color: white;
+
+  border-radius: 10px;
+  font-weight: 600;
+
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  font-size: 0.9rem;
+}
+
+button:not([class*="btn"]) {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:not([class*="btn"]):hover {
+  border-color: #198754;
+}
+button:not([class*="btn"]):focus,
+button:not([class*="btn"]):focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+.modal-custom-background{
+  background-color: rgba(205, 121, 253, 0.467);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #198754;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #198754;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
