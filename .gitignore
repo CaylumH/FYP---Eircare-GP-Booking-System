@@ -40,3 +40,13 @@ Thumbs.db
 /eircare-backend/uploads/
 /eircare-backend/src/main/resources/application-local.properties
 /eircare-backend/src/main/resources/*.env
+
+.env
+.env.local
+.env.production
+
+eircare-frontend/node_modules/
+eircare-frontend/dist/
+eircare-frontend/.env
+eircare-frontend/.env.local
+eircare-frontend/.env.production
