@@ -31,7 +31,7 @@ function App() {
 <div className="container-fluid p-0">
 
     <Routes>
-      <Route path="/" element={<LandingPage />} />
+      <Route path="/" element={<LandingPage />} /> 
       <Route path="/doctorregister" element={<DoctorRegister />} />
       <Route path="/patientregister" element={<PatientRegister />} />
       <Route path="/patientlogin" element={<PatientLogin />} />

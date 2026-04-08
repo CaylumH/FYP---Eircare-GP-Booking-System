@@ -7,6 +7,11 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    command: >
+      --innodb-buffer-pool-size=64M
+      --innodb-log-buffer-size=8M
+      --max-connections=50
+      --performance-schema=OFF
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -14,6 +19,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    mem_limit: 256m
     restart: always
 
   backend:
