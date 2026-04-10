@@ -19,9 +19,13 @@ public class DoctorComparator implements Comparator<Doctor> {
 
     @Override
     public int compare(Doctor doctor1, Doctor doctor2) {
-        
-        double distanceDoctor1 = calculateDistance(patientLatitude, patientLongitude, doctor1.getLatitude(), doctor1.getLongitude());
-        double distanceDoctor2 = calculateDistance(patientLatitude, patientLongitude, doctor2.getLatitude(), doctor2.getLongitude());
+
+        double distanceDoctor1 = (doctor1.getPractice() != null)
+            ? calculateDistance(patientLatitude, patientLongitude, doctor1.getPractice().getLatitude(), doctor1.getPractice().getLongitude())
+            : Double.MAX_VALUE;
+        double distanceDoctor2 = (doctor2.getPractice() != null)
+            ? calculateDistance(patientLatitude, patientLongitude, doctor2.getPractice().getLatitude(), doctor2.getPractice().getLongitude())
+            : Double.MAX_VALUE;
 
         return Double.compare(distanceDoctor1, distanceDoctor2);
     }

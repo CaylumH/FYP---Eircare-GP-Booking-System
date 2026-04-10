@@ -4,4 +4,5 @@ import com.example.eircare_backend.model.Patient;
 
 public interface PatientRepository extends JpaRepository<Patient, Long> {
     Patient findByUserEmail(String email);
+    Patient findByUserId(Long userId);
 }

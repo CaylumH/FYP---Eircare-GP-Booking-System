@@ -28,11 +28,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.eircare_backend.JWTUtil;
 import com.example.eircare_backend.LoginRequest;
 import com.example.eircare_backend.LoginResponse;
-import com.example.eircare_backend.dto.LatLong;
 import com.example.eircare_backend.model.Doctor;
 import com.example.eircare_backend.model.DoctorAvailability;
 import com.example.eircare_backend.model.DoctorBreak;
@@ -44,7 +44,6 @@ import com.example.eircare_backend.repository.PatientRepository;
 import com.example.eircare_backend.repository.UserRepository;
 import com.example.eircare_backend.model.User;
 import com.example.eircare_backend.service.DoctorService;
-import com.example.eircare_backend.service.NominatimService;
 import com.example.eircare_backend.TokenChecker;
 
 @RestController
@@ -58,19 +57,17 @@ public class DoctorController {
     private final DoctorBreakRepository doctorBreakRepository;
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
-    private final NominatimService nominatimService;
     private final JWTUtil jwtUtil;
     private final TokenChecker tokenChecker;
     private final BCryptPasswordEncoder passwordHasher = new BCryptPasswordEncoder();
 
-    public DoctorController(DoctorRepository doctorRepository,  DoctorService doctorService, DoctorAvailablityRepository doctorAvailabilityRepository, DoctorBreakRepository doctorBreakRepository, PatientRepository patientRepository, UserRepository userRepository, NominatimService nominatimService, JWTUtil jwtUtil, TokenChecker tokenChecker) {
+    public DoctorController(DoctorRepository doctorRepository, DoctorService doctorService, DoctorAvailablityRepository doctorAvailabilityRepository, DoctorBreakRepository doctorBreakRepository, PatientRepository patientRepository, UserRepository userRepository, JWTUtil jwtUtil, TokenChecker tokenChecker) {
         this.doctorRepository = doctorRepository;
         this.doctorService = doctorService;
         this.doctorAvailabilityRepository = doctorAvailabilityRepository;
         this.doctorBreakRepository = doctorBreakRepository;
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
-        this.nominatimService = nominatimService;
         this.jwtUtil = jwtUtil;
         this.tokenChecker = tokenChecker;
     }   
@@ -81,29 +78,49 @@ public class DoctorController {
         return doctorRepository.findAll();
     }
 
-    @PostMapping("/register")
-    public Doctor registerDoctor(@RequestBody Doctor doctor) {
+    @Transactional
+    @PostMapping("/claim")
+    public Doctor claimDoctor(@RequestBody Doctor doctor) {
+
+        if (doctor.getUser() == null || doctor.getUser().getEmail() == null) {
+
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User credentials required");
+
+        }
         if (userRepository.findByEmail(doctor.getUser().getEmail()) != null) {
 
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
 
-        try{
-        LatLong latLong = nominatimService.getLatLongFromAddress(doctor.getPracticeAddress());
+        doctor.getUser().setPassword(passwordHasher.encode(doctor.getUser().getPassword()));
 
-        System.out.println(latLong.getLatitude() + " " + latLong.getLongitude());
+        doctor.getUser().setRole(User.Role.DOCTOR);
 
-        doctor.setLatitude(latLong.getLatitude());
-        doctor.setLongitude(latLong.getLongitude());
+        User savedUser = userRepository.save(doctor.getUser());
+
+        Doctor claimed = doctorService.claimProfile(doctor.getPhoneNumber(), savedUser);
+
+        claimed.setFirstName(doctor.getFirstName());
+
+        claimed.setLastName(doctor.getLastName());
+
+        claimed.setMedicalCouncilNumber(doctor.getMedicalCouncilNumber());
+
+        claimed.setProvidesVirtualAppointments(doctor.getProvidesVirtualAppointments());
+
+        return doctorRepository.save(claimed);
+    }
+
+    @Transactional
+    @PostMapping("/register")
+    public Doctor registerDoctor(@RequestBody Doctor doctor) {
+
+        if (userRepository.findByEmail(doctor.getUser().getEmail()) != null) {
+            
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
-        catch (RuntimeException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid address: could not geocode practice address");
-        }
-
-        //hash password
         doctor.getUser().setPassword(passwordHasher.encode(doctor.getUser().getPassword()));
         userRepository.save(doctor.getUser());
-
         doctor.setStatus(Doctor.Status.PENDING);
         return doctorRepository.save(doctor);
     }
@@ -118,8 +135,11 @@ public class DoctorController {
         if (!passwordHasher.matches(request.getPassword(), doctor.getUser().getPassword())) {
             throw new RuntimeException("Wrong password pal");
         }
+        if (doctor.getStatus() == Doctor.Status.PENDING) {
+
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "ACCOUNT_PENDING");
+        }
         if (doctor.getStatus() == Doctor.Status.REJECTED) {
-            
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "ACCOUNT_REJECTED");
         }
         String token = jwtUtil.createToken(doctor.getUser().getEmail(), doctor.getUser().getRole());
@@ -145,22 +165,11 @@ public class DoctorController {
 
         doctor.setFirstName(updatedDoctor.getFirstName());
         doctor.setLastName(updatedDoctor.getLastName());
-        doctor.setPhoneNumber(updatedDoctor.getPhoneNumber());
-        doctor.setPracticeName(updatedDoctor.getPracticeName());
         doctor.setMedicalCouncilNumber(updatedDoctor.getMedicalCouncilNumber());
         doctor.setProvidesVirtualAppointments(updatedDoctor.getProvidesVirtualAppointments());
 
         if (updatedDoctor.getUser() != null && updatedDoctor.getUser().getEmail() != null) {
             doctor.getUser().setEmail(updatedDoctor.getUser().getEmail());
-        }
-
-        String updatedPracticeAddress = updatedDoctor.getPracticeAddress();
-        if (updatedPracticeAddress != null && !updatedPracticeAddress.isBlank()) {
-            doctor.setPracticeAddress(updatedPracticeAddress);
-
-            LatLong latLong = nominatimService.getLatLongFromAddress(updatedPracticeAddress);
-            doctor.setLatitude(latLong.getLatitude());
-            doctor.setLongitude(latLong.getLongitude());
         }
 
         userRepository.save(doctor.getUser());
@@ -178,15 +187,16 @@ public class DoctorController {
 
     @GetMapping("/sorted")
     public List<Doctor> getSortedDoctors(@RequestHeader("Authorization") String tokenHeader) {
-        
         tokenChecker.validTokenRequired(tokenHeader);
         String token = tokenChecker.extractTokenFromHeader(tokenHeader);
         Patient patient = patientRepository.findByUserEmail(jwtUtil.getClaims(token).getSubject());
-        
-        double patientLatitude = patient.getLatitude();
-        double patientLongitude = patient.getLongitude();
 
-        return doctorService.DoctorSorter(patientLatitude, patientLongitude);
+        if (patient == null || patient.getLatitude() == null || patient.getLongitude() == null) {
+
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Patient location not set. Please update your address.");
+        }
+
+        return doctorService.DoctorSorter(patient.getLatitude(), patient.getLongitude());
 }
 
     @PostMapping("/uploadProfilePicture")
@@ -326,6 +336,26 @@ public class DoctorController {
     public List<DoctorBreak> getDoctorBreaks(@PathVariable Long doctorId, @RequestParam String day, @RequestHeader("Authorization") String tokenHeader) {
         tokenChecker.validTokenRequired(tokenHeader);
         return doctorBreakRepository.findByDoctorIdAndDay(doctorId, DayOfWeek.valueOf(day.toUpperCase()));
+    }
+
+    @DeleteMapping("/{doctorId}/breaks")
+    public void deleteAllDoctorBreaks(@PathVariable Long doctorId, @RequestHeader("Authorization") String tokenHeader) {
+
+        tokenChecker.roleRequired(tokenHeader, User.Role.DOCTOR);
+
+        tokenChecker.idRequired(tokenHeader, User.Role.DOCTOR, doctorId);
+        doctorBreakRepository.deleteByDoctorId(doctorId);
+    }
+
+    @Transactional
+    @DeleteMapping("/{doctorId}/availability")
+    public void deleteAllDoctorAvailability(@PathVariable Long doctorId, @RequestHeader("Authorization") String tokenHeader) {
+
+        tokenChecker.roleRequired(tokenHeader, User.Role.DOCTOR);
+
+        tokenChecker.idRequired(tokenHeader, User.Role.DOCTOR, doctorId);
+        
+        doctorAvailabilityRepository.deleteByDoctorId(doctorId);
     }
 
 

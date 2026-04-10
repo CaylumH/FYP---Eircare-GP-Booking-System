@@ -2,6 +2,7 @@ package com.example.eircare_backend.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import com.example.eircare_backend.JWTUtil;
@@ -29,6 +31,7 @@ import com.example.eircare_backend.TokenChecker;
 @RequestMapping("/api/patients")
 @CrossOrigin(origins = "*")
 public class PatientController {
+
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
     private final NominatimService nominatimService;
@@ -67,13 +70,16 @@ public class PatientController {
 
         //TODO: Hash password
 
-        try{
-        LatLong latLong = nominatimService.getLatLongFromAddress(patient.getAddress());
-        patient.setLatitude(latLong.getLatitude());
-        patient.setLongitude(latLong.getLongitude());
-        }
-        catch (RuntimeException e) {
-            throw new RuntimeException("Invalid address" + e.getMessage());
+        
+        try {
+            LatLong latLong = nominatimService.getLatLongFromAddress(patient.getAddress());
+
+            patient.setLatitude(latLong.getLatitude());
+            patient.setLongitude(latLong.getLongitude());
+
+            } catch (RuntimeException e) {
+  throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not verify address. Please try entering a different address");
+            
         }
 
         patient.getUser().setPassword(passwordHasher.encode(patient.getUser().getPassword()));
@@ -112,10 +118,15 @@ public class PatientController {
 
         patient.setAddress(updatedPatient.getAddress());
 
-        
-                LatLong latLong = nominatimService.getLatLongFromAddress(updatedPatient.getAddress());
-                patient.setLatitude(latLong.getLatitude());
-                patient.setLongitude(latLong.getLongitude());
+        try {
+            LatLong latLong = nominatimService.getLatLongFromAddress(updatedPatient.getAddress());
+            
+            patient.setLatitude(latLong.getLatitude());
+
+            patient.setLongitude(latLong.getLongitude());
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Couldnt verify address. Please try entering a different address.");
+        }
 
         userRepository.save(patient.getUser());
         return patientRepository.save(patient);
