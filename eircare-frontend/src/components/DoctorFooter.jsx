@@ -21,7 +21,7 @@ function DoctorFooter({ doctor, doctorId }) {
         })
             .then((data) => {
 
-                const sortedAvailability = [...data].sort((day1, day2) => {
+                const sortedAvailability = [...(data ?? [])].sort((day1, day2) => {
                 return DAY_ORDER.indexOf(day1.day) - DAY_ORDER.indexOf(day2.day);
             });
 
@@ -50,14 +50,14 @@ function DoctorFooter({ doctor, doctorId }) {
                     <div className="col-md-4">
 
                         <h5 className="fw-bold mb-3">
-                            {doctor?.practiceName || "GP Practice"}
+                            {doctor?.practice?.name || "GP Practice"}
                         </h5>
 
                         <p className="mb-1 text-secondary">
                             Dr. {doctor?.firstName} {doctor?.lastName}
                         </p>
 
-                        {doctor?.practiceAddress && (
+                        {doctor?.practice?.address && (
 
                             <p className="mb-1">
 
@@ -65,20 +65,20 @@ function DoctorFooter({ doctor, doctorId }) {
                                     Address
                                     </span>
 
-                                {doctor.practiceAddress}
+                                {doctor.practice.address}
                             </p>
                         )}
 
-                        {doctor?.phoneNumber && (
+                        {doctor?.practice?.phoneNumber && (
 
                             <p className="mb-1">
                                 <span className="text-secondary me-2">Phone</span>
 
                                 <a
-                                    href={`tel:${doctor.phoneNumber}`}
+                                    href={`tel:${doctor.practice.phoneNumber}`}
                                     className="text-light text-decoration-none"
                                 >
-                                    {doctor.phoneNumber}
+                                    {doctor.practice.phoneNumber}
                                 </a>
                             </p>
                         )}

@@ -1,4 +1,4 @@
-import defaultPfp from "../../assets/default_pfp.jpeg";
+import DoctorProfileImage from "./DoctorProfileImage";
 
 function DoctorCard({ doctor, id }) {
 
@@ -13,13 +13,7 @@ function DoctorCard({ doctor, id }) {
 
                 <div className="d-flex align-items-center gap-4">
 
-                    <img
-                        src={`/api/doctors/${id}/profilePicture`}
-                        alt="Doctor"
-                        className="rounded-circle border border-2 border-success-subtle flex-shrink-0"
-                        style={{ width: "80px", height: "80px", objectFit: "cover" }}
-                        onError={(e) => { e.target.onerror = null; e.target.src = defaultPfp; }}
-                    />
+                    <DoctorProfileImage doctorId={id} size={80} />
                     <div>
 
                         <h5 className="mb-1 fw-semibold text-success">
@@ -27,13 +21,13 @@ function DoctorCard({ doctor, id }) {
                         </h5>
 
                         <p className="mb-1 fw-medium text-body">
-                            {doctor.practiceName}</p>
+                            {doctor.practice?.name}</p>
 
                         <p className="mb-1 text-muted small">
-                            {doctor.practiceAddress}</p>
+                            {doctor.practice?.address}</p>
 
                         <p className="mb-0 text-muted small">
-                            {doctor.phoneNumber}</p>
+                            {doctor.practice?.phoneNumber}</p>
                     </div>
                 </div>
 

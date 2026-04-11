@@ -19,7 +19,7 @@ function PatientSettings() {
             streetName: "",
             city: "",
             county: "",
-            country: ""
+            country: "Ireland"
         }
     );
 
@@ -91,7 +91,7 @@ function PatientSettings() {
                 streetName: "",
                 city: "",
                 county: "",
-                country: ""
+                country: "Ireland"
             }
             )
             );
@@ -200,7 +200,7 @@ function PatientSettings() {
                                 <input type="text"
                                     className="form-control"
                                     value={patientSettings.country}
-                                    onChange={(e) => setPatientSettings((prev) => ({ ...prev, country: e.target.value }))} />
+                                    readOnly />
                             </div>
                         </div>
 

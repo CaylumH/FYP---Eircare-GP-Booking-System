@@ -15,7 +15,7 @@ let homePath = "/";
 if (role === "DOCTOR") {
     homePath = "/appointments";
 } else if (role === "PATIENT") {
-    homePath = "/dashboard";
+    homePath = "/practices";
 } else if (role === "ADMIN") {
     homePath = "/admin/dashboard";
 }
@@ -24,8 +24,8 @@ if (role === "DOCTOR") {
     : "/appointments";
 
     const patientSettingsPath = patientId 
-    ? `/patient/settings/${patientId}` 
-    : "/dashboard";
+    ? `/patient/settings/${patientId}`
+    : "/practices";
 
     return (
         <nav className="navbar navbar-expand-lg navbar-dark bg-success px-4">
@@ -55,7 +55,7 @@ if (role === "DOCTOR") {
                     )}
                     {isAuthenticated() && role === "PATIENT" && (
                         <>
-                            <Link to="/dashboard" className="nav-link text-white p-0">
+                            <Link to="/practices" className="nav-link text-white p-0">
                             Home
                             </Link>
 
