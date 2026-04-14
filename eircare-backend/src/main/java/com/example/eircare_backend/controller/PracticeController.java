@@ -2,6 +2,10 @@ package com.example.eircare_backend.controller;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -104,23 +108,25 @@ public class PracticeController {
 
         List<Practice> practices = practiceRepository.findAll();
 
-        
         practices.sort(Comparator.comparingDouble(practice ->
             (practice.getLatitude() != null && practice.getLongitude() != null)
                 ? distanceCalc.calculateDistance(patientLatitude, patientLongitude, practice.getLatitude(), practice.getLongitude())
                 : Double.MAX_VALUE
-        )
-        );
+        ));
+
+        Map<Long, List<Doctor>> doctorsByPractice = doctorRepository.findByStatus(Doctor.Status.APPROVED)
+            .stream()
+            .filter(doctor -> doctor.getPractice() != null)
+            .collect(Collectors.groupingBy(doctor -> doctor.getPractice().getId()));
 
         for (Practice practice : practices) {
 
             if (practice.getLatitude() != null && practice.getLongitude() != null) {
-
                 double distance = distanceCalc.calculateDistance(patientLatitude, patientLongitude, practice.getLatitude(), practice.getLongitude());
                 practice.setDistance(Math.round(distance * 10.0) / 10.0);
             }
-            List<Doctor> doctors = doctorRepository.findByPracticeIdAndStatus(practice.getId(), Doctor.Status.APPROVED);
 
+            List<Doctor> doctors = doctorsByPractice.getOrDefault(practice.getId(), List.of());
             practice.setTakingBookings(!doctors.isEmpty());
             practice.setHasVirtualAppointments(doctors.stream().anyMatch(doctor -> Boolean.TRUE.equals(doctor.getProvidesVirtualAppointments())));
         }
