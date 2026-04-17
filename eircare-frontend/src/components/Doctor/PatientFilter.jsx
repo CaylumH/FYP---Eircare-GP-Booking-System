@@ -6,7 +6,7 @@ function PatientFilter({
     setSearchedPatientId
 })
 {
-    const selectedPatient = patients.find(
+    const selectedPatient = (patients ?? []).find(
         (p) => String(p.id) === String(searchedPatientId)
     );
 let searchedPatients = [];
@@ -15,7 +15,7 @@ if (searchInput) {
 
     const searchInputLower = searchInput.toLowerCase();
 
-    searchedPatients = patients.filter((patient) => {
+    searchedPatients = (patients ?? []).filter((patient) => {
 
         const first = patient.firstName ?
          patient.firstName.toLowerCase() :
