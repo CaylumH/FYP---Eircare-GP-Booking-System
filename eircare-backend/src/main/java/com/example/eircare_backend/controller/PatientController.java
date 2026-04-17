@@ -27,7 +27,7 @@ import com.example.eircare_backend.TokenChecker;
 
 @RestController
 @RequestMapping("/api/patients")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*")
 public class PatientController {
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;

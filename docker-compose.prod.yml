@@ -2,6 +2,8 @@ services:
   mysql:
     image: mysql:8.4
     container_name: eircare-mysql
+    networks:
+      - eircare-net
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
@@ -25,6 +27,8 @@ services:
   backend:
     image: caylumh/eircare-backend:latest
     container_name: eircare-backend
+    networks:
+      - eircare-net
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
@@ -38,6 +42,8 @@ services:
   frontend:
     image: caylumh/eircare-frontend:latest
     container_name: eircare-frontend
+    networks:
+      - eircare-net
     depends_on:
       - backend
     restart: always
@@ -45,6 +51,8 @@ services:
   nginx:
     image: nginx:latest
     container_name: eircare-nginx
+    networks:
+      - eircare-net
     ports:
       - "80:80"
       - "443:443"
@@ -55,6 +63,10 @@ services:
       - frontend
       - backend
     restart: always
+
+networks:
+  eircare-net:
+    driver: bridge
 
 volumes:
   mysql_data:
