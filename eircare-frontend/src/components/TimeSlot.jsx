@@ -44,9 +44,9 @@ function TimeSlot({
                             Unavailable
                         </span>
                     ) : (
-                        appointment.patient.firstName +
-                        " " +
-                        appointment.patient.lastName
+                        appointment.patient
+                            ? appointment.patient.firstName + " " + appointment.patient.lastName
+                            : "Unknown Patient"
                     )}
                     
                     </div>
