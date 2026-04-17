@@ -13,8 +13,8 @@ function BookingModal({
   providesVirtual = false //by default theu shouldnt provide 
 }
 ) {
-  const selectedPatient = sortedPatientsBySearch.find(
-    (patient) => String(patient.id) === String(appointmentForm.selectedPatientId) //test
+  const selectedPatient = sortedPatientsBySearch?.find(
+    (patient) => String(patient.id) === String(appointmentForm.selectedPatientId)
   );
 
   const consultationOptions = Object.entries(CONSULTATION_DESCRIPTIONS).map(([value, label]) => (
