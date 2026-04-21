@@ -312,6 +312,10 @@ public void markUnavailable(
 
     LocalDateTime appointmentStart = LocalDate.parse(date).atTime(LocalTime.parse(time));
 
+    if (appointmentStart.isBefore(LocalDateTime.now())) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot mark a slot in the past as unavailable");
+    }
+
     LocalDateTime appointmentEnd = appointmentStart.plusMinutes(15);
 
     com.example.eircare_backend.model.Doctor doctor = doctorRepository.findById(id)
