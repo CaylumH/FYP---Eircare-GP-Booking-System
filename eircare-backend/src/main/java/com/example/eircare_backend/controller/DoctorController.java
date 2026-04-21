@@ -338,6 +338,7 @@ public class DoctorController {
         return doctorBreakRepository.findByDoctorIdAndDay(doctorId, DayOfWeek.valueOf(day.toUpperCase()));
     }
 
+    @Transactional
     @DeleteMapping("/{doctorId}/breaks")
     public void deleteAllDoctorBreaks(@PathVariable Long doctorId, @RequestHeader("Authorization") String tokenHeader) {
 
