@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { getToken } from "../../services/authService";
+import { useParams, useNavigate } from "react-router-dom";
+import { getToken, logout } from "../../services/authService";
 import { apiRequest } from "../../utils/ApiRequest";
 import { useFetchUserDetails } from "../../hooks/useFetchUserDetails";
 
 function PatientSettings() {
     const { id: patientId } = useParams();
+    const navigate = useNavigate();
+
     const { userDetails } = useFetchUserDetails(patientId, "PATIENT");
 
     const [address, setAddress] = useState("");
@@ -82,6 +84,14 @@ function PatientSettings() {
 
             setAddress(fullAddress);
 
+            if (patientSettings.email !== userDetails?.user?.email) {
+
+                alert("Email updated. Please log in again.");
+                logout(navigate);
+
+                return;
+            }
+
             setPatientSettings((prev) => ({
                 ...prev,
                 streetName: "",
@@ -89,8 +99,8 @@ function PatientSettings() {
                 county: "",
                 country: "Ireland"
             }
-            )
-            );
+        )
+    );
             alert("Details updated!");
 
         } catch (error) {

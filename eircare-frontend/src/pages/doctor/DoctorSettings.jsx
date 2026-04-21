@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { getToken } from "../../services/authService";
+import { useParams, useNavigate } from "react-router-dom";
+import { getToken, logout } from "../../services/authService";
 import { apiRequest } from "../../utils/ApiRequest";
 import { useFetchUserDetails } from "../../hooks/useFetchUserDetails";
 
 function DoctorSettings() {
     const { id: doctorId } = useParams();
+    const navigate = useNavigate();
+
     const { userDetails } = useFetchUserDetails(doctorId, "DOCTOR");
     const [doctorSettings, setDoctorSettings] = useState({
         firstName: "",
@@ -208,6 +210,15 @@ function DoctorSettings() {
             }
         );
 
+            if (doctorSettings.email !== userDetails?.user?.email) {
+
+                alert("Email updated. Please log in again.");
+
+                logout(navigate);
+
+                
+                return;
+            }
             alert("Details updated successfully");
         } catch (error) {
             console.error("couldn't update details", error);
