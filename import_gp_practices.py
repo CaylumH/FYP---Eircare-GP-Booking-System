@@ -2,7 +2,7 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
-BACKEND_URL = "http://localhost:8080"
+BACKEND_URL = "https://eircaregp.com"
 ADMIN_EMAIL = "admin1@gmail.com"
 ADMIN_PASSWORD = "pass1234"
 
