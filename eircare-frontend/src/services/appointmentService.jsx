@@ -40,6 +40,20 @@ export const openVirtualAppointmentRoom = async (appointmentId) => {
     return response;
 };
 
+export const openVirtualAppointment = async (appointmentId) => {
+
+    try {
+        const responseData = await openVirtualAppointmentRoom(appointmentId);
+
+        window.open(`https://meet.jit.si/${responseData.roomName}`, "_blank", "noopener,noreferrer");
+        
+    } catch (error) {
+        console.error(error);
+
+        alert("Error opening meeting: " + error.message);
+    }
+};
+
 export const checkAppointmentCancelled = (appointment) => {
     return appointment.appointmentStatus === "CANCELLED";
 };

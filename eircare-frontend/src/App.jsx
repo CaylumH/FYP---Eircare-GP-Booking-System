@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { logout } from "./services/authService";
 import NavBar from "./components/Navbar";
 import DoctorPage from "./pages/doctor/DoctorPage";
-import PatientDash from "./pages/patient/PatientDash";
 import PatientRegister from "./pages/patient/PatientRegister";
 import DoctorRegister from "./pages/doctor/DoctorRegister";
 import PatientLogin from "./pages/patient/PatientLogin";
@@ -16,6 +15,8 @@ import PatientSettings from "./pages/patient/PatientSettings";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDash from "./pages/admin/AdminDash";
 import DoctorPendingPage from "./pages/doctor/DoctorPendingPage";
+import PracticeSearch from "./pages/patient/PracticeSearch";
+import PracticePage from "./pages/patient/PracticePage";
 import Footer from "./components/Footer";
 import "bootstrap/dist/css/bootstrap.min.css";
 
@@ -36,7 +37,9 @@ function App() {
       <Route path="/patientregister" element={<PatientRegister />} />
       <Route path="/patientlogin" element={<PatientLogin />} />
       <Route path="/doctorlogin" element={<DoctorLogin />} />
-      <Route path="/dashboard" element={<PatientDash />} />
+      <Route path="/dashboard" element={<Navigate to="/practices" replace />} />
+      <Route path="/practices" element={<PracticeSearch />} />
+      <Route path="/practices/:id" element={<PracticePage />} />
       <Route path="/doctors/:id" element={<DoctorPage />} />
       <Route path="/appointments" element={<DoctorBookingManager />} />
       <Route path="/patient/appointments" element={<PatientBookingManager />} />

@@ -1,49 +1,63 @@
 package com.example.eircare_backend.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-
-import java.net.URLEncoder;
-
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import com.example.eircare_backend.dto.LatLong;
-import com.example.eircare_backend.dto.NominatimResponse;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.net.URLEncoder;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Service
 public class NominatimService {
-    
+
+    @Value("${google.maps.api-key}")
+    private String apiKey;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     public LatLong getLatLongFromAddress(String address) {
 
         RestTemplate restTemplate = new RestTemplate();
 
-        String UTFaddress = URLEncoder.encode(address, UTF_8);
+        String EncodedAddress = URLEncoder.encode(address, UTF_8);
 
-        String EncodedAddress = UTFaddress.replaceAll("%2C", ","); // Nominatim needs commas not 2%C
+        String url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + EncodedAddress + "&key=" + apiKey + "&region=ie";
 
-        String url = "https://nominatim.openstreetmap.org/search?q=" + EncodedAddress + "&format=json&limit=1&addressdetails=1";
-        
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.set("User-Agent", "Eircare");
-
         HttpEntity<String> httpEntity = new HttpEntity<>(httpHeaders);
 
-        ResponseEntity<NominatimResponse[]> responseEntity = restTemplate.exchange(
-            url, 
-            HttpMethod.GET, 
-            httpEntity, 
-            NominatimResponse[].class);
-        
-            if (responseEntity.getBody() == null || responseEntity.getBody().length == 0){
-                throw new RuntimeException("Couldnt get address");
+        ResponseEntity<String> responseEntity = restTemplate.exchange(
+            url,
+            HttpMethod.GET,
+            httpEntity,
+            String.class
+        );
+
+        try {
+            JsonNode root = objectMapper.readTree(responseEntity.getBody());
+
+            String status = root.path("status").asText();
+
+            if (!"OK".equals(status)) {
+                throw new RuntimeException("Geocoding failed:" + status);
             }
 
-            NominatimResponse result = responseEntity.getBody()[0];
-            return new LatLong(Double.parseDouble(result.getLat()), Double.parseDouble(result.getLon()));
-        };
-    }
+            JsonNode location = root.path("results").get(0).path("geometry").path("location");
+
+            double lat = location.path("lat").asDouble();
+            double lng = location.path("lng").asDouble();
+
+            return new LatLong(lat, lng);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse geocoding response " + e.getMessage());
+        }
+    }}

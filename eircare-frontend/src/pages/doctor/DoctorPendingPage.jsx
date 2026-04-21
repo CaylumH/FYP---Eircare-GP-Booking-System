@@ -4,9 +4,9 @@ import { logout } from "../../services/authService";
 function DoctorPendingPage() {
 
 const routeState = useLocation();
-const navTo = useNavigate();
+const navigate = useNavigate();
 
-//used to show rejected vs pending state
+//shwo rejected or pending
 const isRejected = routeState.state?.denied === true;
 
 return (
@@ -29,7 +29,6 @@ return (
 
                     <p className="text-muted">
                         Your registration was reviewed but not approved.
-                        If you think this is a mistake, you may contact support.
                     </p>
                 </>
             ) : (
@@ -41,7 +40,7 @@ return (
                     </h4>
 
                     <p className="text-muted">
-                        Your account is still under review by an administrator.
+                        Your account is still under review by an admin.
                         Please check back soon...
                     </p>
                 </>
@@ -49,7 +48,7 @@ return (
 
             <button
                 className="btn btn-outline-secondary mt-3"
-                onClick={() => logout(navTo)}
+                onClick={() => logout(navigate)}
             >
                 Back to Home
             </button>
