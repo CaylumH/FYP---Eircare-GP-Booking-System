@@ -44,18 +44,14 @@ function PatientSettings() {
 
         e.preventDefault();
 
-        //frontend shouldnt send address unless all address fields are filled
-        const hasAddressInput = [patientSettings.streetName,
-             patientSettings.city,
-              patientSettings.county, 
-              patientSettings.country].some((value) => value.trim() !== "");
+        const addressFields = [patientSettings.streetName, patientSettings.city, patientSettings.county];
+        const hasAddressInput = addressFields.some((value) => value.trim() !== "");
 
         let fullAddress = address;
 
         if (hasAddressInput) {
-//if any field has new input, must fill in all fields to update
-            if ([patientSettings.streetName, patientSettings.city, patientSettings.county, patientSettings.country].some((value) => value.trim() === "")) {
-                alert("Fill in all address fields to update address!!!!");
+            if (addressFields.some((value) => value.trim() === "")) {
+                alert("Fill in all address fields to update address.");
                 return;
             }
 
