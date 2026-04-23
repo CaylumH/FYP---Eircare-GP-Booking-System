@@ -68,7 +68,12 @@ function PracticeSearch() {
 
   if (loading) {
 
-    return <div className="text-center mt-5">Loading...</div>;
+    return (
+      <div className="text-center mt-5">
+        <div className="spinner-border text-success" role="status" />
+        <p className="text-muted mt-3">Finding GP practices near you...</p>
+      </div>
+    );
 
   }
 
