@@ -49,4 +49,4 @@ eircare-frontend/node_modules/
 eircare-frontend/dist/
 eircare-frontend/.env
 eircare-frontend/.env.local
-eircare-frontend/.env.production
+eircare-frontend/.env.productionkey.env
