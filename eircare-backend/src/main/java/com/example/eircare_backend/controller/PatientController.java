@@ -68,7 +68,6 @@ public class PatientController {
             throw new RuntimeException("Email already exists");
         }
 
-        //TODO: Hash password
 
         
         try {

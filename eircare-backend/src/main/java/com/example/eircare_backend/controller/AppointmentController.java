@@ -86,7 +86,7 @@ public class AppointmentController {
 
         System.out.println(id);
 
-//TODO: patients can accesss other patiens appointments rn
+
         appointmentService.checkForAppointmentsCompleted();
         return appointmentRepository.findByPatientId(id);
     }
@@ -174,7 +174,7 @@ public class AppointmentController {
         }
 
         //Makes it so doctor has to startr the appointment
-        //Future work (for report) would definitely include proper jwt validation
+        //Future work (for report)
         if (isAssignedDoctor) {
             if (appointment.getRoomName() == null || appointment.getRoomName().isBlank()) {
                 appointment.setRoomName("eircare-" + UUID.randomUUID().toString().replace("-", ""));
