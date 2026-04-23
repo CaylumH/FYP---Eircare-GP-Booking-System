@@ -6,6 +6,12 @@ Live: https://eircaregp.com
 
 The live deployment above is configured with all relevant API keys. Running locally requires Google Maps and Anthropic API keys.
 
+## Test Accounts (live deployment)
+
+**Admin:** admin1@gmail.com / pass1234
+**Doctor:** doctor1@gmail.com / pass1234
+**Patient:** patient1@gmail.com / pass1234
+
 ---
 
 ## Running Locally
