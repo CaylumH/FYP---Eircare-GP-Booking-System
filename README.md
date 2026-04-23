@@ -4,7 +4,7 @@ A GP appointment booking system built with Spring Boot, React, and MySQL.
 
 Live: https://eircaregp.com
 
-The live deployment above is configured with all relevant API keys. Running locally requires Google Maps and Anthropic API keys.
+The live deployment above is configured with all relevant API keys. Running locally requires Google Maps and Anthropic API keys. Using the live deployment is recommended
 
 ## Test Accounts (live deployment)
 
